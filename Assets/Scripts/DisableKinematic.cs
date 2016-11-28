@@ -27,7 +27,10 @@ public class DisableKinematic : MonoBehaviour, ITrackableEventHandler
             //Disables kinematic on imagetarget detection
             Debug.Log("target detected, set kinematic to false");
             player.GetComponent<Rigidbody>().isKinematic = false;
-            skeletons.GetComponentInChildren<Rigidbody>().isKinematic = false;
+
+			Rigidbody skeletonRigidbodies = skeletons.GetComponentInChildren<Rigidbody>();
+			if (skeletonRigidbodies != null)
+				skeletonRigidbodies.isKinematic = false;
         }
     }
 
