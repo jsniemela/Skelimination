@@ -80,4 +80,6 @@ $RECYCLE.BIN/
 # Windows shortcuts
 *.lnk
 
-QCAR/somedata16
+# Vuforia files
+/QCAR
+/QCAR/*
