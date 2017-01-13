@@ -1,12 +1,48 @@
 ﻿using UnityEngine;
 using System.Collections;
 
+public enum CharacterState { idle, moving, knockback, taunt, frozen, dead, attack };
 
-abstract public class Character : MonoBehaviour {
-	int health;
-	int attack;
-	int knockback;
-	protected float speed;
+abstract public class Character : MonoBehaviour
+{
+
+    private int maxHealth;
+    private int health;
+    private int attackPower;
+    private float knockback;
+    private CharacterState state;
+    private float speed;
+    protected Animator animator;
+    public bool canMove;
+
+
+
+    public Character(int maxHealth, int health, int attackPower, int knockback, CharacterState state, int speed, Animator animator, bool canMove)
+    {
+        MaxHealth = maxHealth;
+        Health = health;
+        AttackPower = attackPower;
+        Knockback = knockback;
+        State = state;
+        Speed = speed;
+        this.animator = animator;
+        this.canMove = canMove;
+    }
+
+
+
+    public int MaxHealth
+    {
+        get
+        {
+            return maxHealth;
+        }
+
+        set
+        {
+            maxHealth = value;
+        }
+    }
 
     public int Health
     {
@@ -17,24 +53,35 @@ abstract public class Character : MonoBehaviour {
 
         set
         {
-            health = value;
+            if (value < 0)
+            {
+                health = 0;
+            }
+            else if (value > maxHealth)
+            {
+                health = maxHealth;
+            }
+            else
+            {
+                health = value;
+            }
         }
     }
 
-    public int Attack
+    public int AttackPower
     {
         get
         {
-            return attack;
+            return attackPower;
         }
 
         set
         {
-            attack = value;
+            attackPower = value;
         }
     }
 
-    public int Knockback
+    public float Knockback
     {
         get
         {
@@ -60,9 +107,70 @@ abstract public class Character : MonoBehaviour {
         }
     }
 
-    enum status { frozen };
+    public CharacterState State
+    {
+        get
+        {
+            return state;
+        }
 
-	public Character() {
+        set
+        {
+            //State can't be changed after the character dies.
+            if (State != CharacterState.dead)
+            {
+
+                state = value;
+
+            }
 
         }
+    }
+
+
+
+    public void TakeDamage(int damage, float knockback)
+    {
+
+        Health = Health - damage;
+        
+        if (Health > 0)
+        {
+            animator.SetTrigger("Knockback");
+            State = CharacterState.knockback;
+            //move character a certain amount
+        }
+        else {
+            //call Die()
+        }
+
+    }
+
+    public void OutOfBounds()
+    {
+        
+        //if gameObject is out of bounds, call Die()
+
+    }
+
+    /*
+    public void CalculateDamage() {}
+    */
+
+    protected virtual void Attack() { }
+
+    protected virtual void Die() {
+        //animator.SetTrigger("Death");
+        //State = CharacterState.dead;
+    }
+
+    
+
+    IEnumerator StopCharacter(float waitDuration)
+    {
+        canMove = false;
+        yield return new WaitForSeconds(waitDuration);
+        canMove = true;
+    }
+
 }
