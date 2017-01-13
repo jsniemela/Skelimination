@@ -15,7 +15,7 @@ public class Player : Character  {
 
 	// Update is called once per frame
 	void Update () {
-		if (canMove == true) 
+        if (canMove == true) 
 		{
 			var horizontalMovement = Input.GetAxis ("Horizontal");
 			var verticalMovement = Input.GetAxis ("Vertical");
@@ -50,12 +50,10 @@ public class Player : Character  {
 		}
 
 		if (Input.GetButton("Attack")){
-			if (true) { 
 				canMove = false;
 				moving = false;
 				GetComponent<Animator> ().CrossFade ("Attack", 0);
 				//GetComponent<Rigidbody>().velocity = new Vector3(0 , 0, 5.0f);
-			}
 		}
 	}
 
