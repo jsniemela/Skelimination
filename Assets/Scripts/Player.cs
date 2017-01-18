@@ -2,70 +2,89 @@
 using System.Collections;
 
 public class Player : Character  {
-	bool moving = false;
-	bool canMove = true;
 
-    public Player() {
-        speed = 2.0f;
+ 
+    public void InitializePlayer(int maxHealth, int health, int attackPower, float knockback, CharacterState state, float speed, Animator animator, bool canMove, bool moving)
+    { 
+        MaxHealth = maxHealth;
+        Health = health;
+        AttackPower = attackPower;
+        Knockback = knockback;
+        State = state;
+        Speed = speed;
+        CharacterAnimator = animator;
+        CanMove = canMove;
+        Moving = moving;
+    }
+    
+
+
+    private void Awake()
+    {
+        InitializePlayer(10, 10, 1, 1.0f, CharacterState.idle, 0.2f, GetComponent<Animator>(), true, false);
     }
 
 	void Start () {
-	
-	}
+        
+
+    }
 
 	// Update is called once per frame
 	void Update () {
-		if (canMove == true) 
+		if (CanMove == true) 
 		{
 			var horizontalMovement = Input.GetAxis ("Horizontal");
 			var verticalMovement = Input.GetAxis ("Vertical");
 			var movement = new Vector3 (horizontalMovement, 0.0f, verticalMovement);
-			movement *= speed/10;
-			moving = horizontalMovement != 0 || verticalMovement != 0;
-
-			//Vector3 relative = transform.rotation.eulerAngles;
-			//int relative.y = Camera.main.transform.localEulerAngles; 
+			movement *= Speed;
+			Moving = horizontalMovement != 0 || verticalMovement != 0;
 
 			if (movement != Vector3.zero) {
-				//var targetDirection = new Vector3 (Input.GetAxis ("Horizontal"), 0.0f, Input.GetAxis ("Vertical"));
-				//targetDirection = Camera.main.transform.TransformDirection (targetDirection);
-				//targetDirection.y = 0.0f;
 				Quaternion targetRotation = Quaternion.LookRotation (movement, Vector3.up);
 				float rotationSpeed = 60.0f;
 				Quaternion newRotation = Quaternion.Lerp (GetComponent<Rigidbody> ().rotation, targetRotation, rotationSpeed * Time.deltaTime);
 				GetComponent<Rigidbody> ().MoveRotation (newRotation);
 			}
+
 			var characterMovement = transform.position + movement;
-			if (moving) {
+
+            
+
+            if (Moving) {
 				GetComponent<Rigidbody> ().MovePosition (characterMovement);
-				GetComponent<Animator> ().CrossFade ("Run", 0.0f);
-			}
+                CharacterAnimator.CrossFade("Run", 0.0f);
+                State = CharacterState.moving;
+            }
 
 		}
 
-		if (!GetComponent<Animator>().GetCurrentAnimatorStateInfo(0).IsName("Attack") && moving == false)
-		{
-			GetComponent<Animator> ().CrossFade ("Idle", 0.0f);
-			canMove = true;
-		}
+        SetMovementAnimation();
 
-		if (Input.GetButton("Attack")){
-			if (true) { 
-				canMove = false;
-				moving = false;
-				GetComponent<Animator> ().CrossFade ("Attack", 0);
-				//GetComponent<Rigidbody>().velocity = new Vector3(0 , 0, 5.0f);
-			}
+        if (Input.GetButton("Attack")){
+
+			CanMove = false;
+			Moving = false;              
+            Attack();
+            
 		}
 	}
 
 
-	private void Attack() {
+	protected override void Attack() {
+        CharacterAnimator.CrossFade("Attack", 0.0f);
+        State = CharacterState.attack;
+        //Debug.Log("Player attacked.");
+    }
 
-	}
+    protected override void Die()
+    {
+        CharacterAnimator.CrossFade("Death", 0.0f);
+        State = CharacterState.dead;
+        Debug.Log("Player died.");
+        //Notify GameLogic
+        StartCoroutine(Wait(2.0f));
+        //Game over
+    }
 
-	private int calculateDamage() {
-		int damage = 1;
-		return damage;
-	}
+
 }
