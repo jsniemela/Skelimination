@@ -2,40 +2,54 @@
 using System.Collections;
 using CnControls;
 
-public class Player : MonoBehaviour  {
-	bool moving = false;
-	bool canMove = true;
-    float speed = 2.0f;
+public class Player : Character  {
+
+ 
+    public void InitializePlayer(int maxHealth, int health, int attackPower, float knockback, CharacterState state, float speed, Animator animator, bool canMove, bool moving)
+    { 
+        MaxHealth = maxHealth;
+        Health = health;
+        AttackPower = attackPower;
+        Knockback = knockback;
+        State = state;
+        Speed = speed;
+        CharacterAnimator = animator;
+        CanMove = canMove;
+        Moving = moving;
+    }
+    
+
+
+    private void Awake()
+    {
+        InitializePlayer(10, 10, 1, 1.0f, CharacterState.idle, 0.2f, GetComponent<Animator>(), true, false);
+    }
+
 
 	void Start () {
-	
-	}
+        
+
+    }
 
 	// Update is called once per frame
 	void Update () {
-		if (canMove == true) 
+		if (CanMove == true) 
 		{
+
             //Lock rotation so that the character doesn't fall over
             transform.rotation = Quaternion.Euler(0, transform.rotation.eulerAngles.y, 0);
 
             Movement();
+		}
+
+        SetMovementAnimation();
+
+        if (CnInputManager.GetButton("Attack")){
+
+			CanMove = false;
+			Moving = false;              
+            Attack();
             
-
-		}
-
-		if (!GetComponent<Animator>().GetCurrentAnimatorStateInfo(0).IsName("Attack") && moving == false)
-		{
-			GetComponent<Animator> ().CrossFade ("Idle", 0.0f);
-			canMove = true;
-		}
-
-		if (CnInputManager.GetButton("Attack")){
-			if (true) { 
-				canMove = false;
-				moving = false;
-				GetComponent<Animator> ().CrossFade ("Attack", 0);
-				//GetComponent<Rigidbody>().velocity = new Vector3(0 , 0, 5.0f);
-			}
 		}
 	}
 
@@ -53,9 +67,9 @@ public class Player : MonoBehaviour  {
         movement.y = 0.0f;
 
         //apply speed to movement
-        movement *= speed / 10;
+        movement *= Speed;
         //change moving state to true when moving
-        moving = horizontalMovement != 0 || verticalMovement != 0;
+        Moving = horizontalMovement != 0 || verticalMovement != 0;
 
         if (movement != Vector3.zero)
         {
@@ -68,22 +82,33 @@ public class Player : MonoBehaviour  {
             GetComponent<Rigidbody>().MoveRotation(newRotation);
         }
         var characterMovement = transform.position + movement;
-        if (moving)
+        if (Moving)
         {
             //move character
             GetComponent<Rigidbody>().MovePosition(characterMovement);
             //fade into running animation
-            GetComponent<Animator>().CrossFade("Run", 0.0f);
+            CharacterAnimator.CrossFade("Run", 0.0f);
+			//change character state to moving
+            State = CharacterState.moving;
         }
     }
 
 
-	private void Attack() {
+	protected override void Attack() {
+        CharacterAnimator.CrossFade("Attack", 0.0f);
+        State = CharacterState.attack;
+        //Debug.Log("Player attacked.");
+    }
 
-	}
+    protected override void Die()
+    {
+        CharacterAnimator.CrossFade("Death", 0.0f);
+        State = CharacterState.dead;
+        Debug.Log("Player died.");
+        //Notify GameLogic
+        StartCoroutine(Wait(2.0f));
+        //Game over
+    }
 
-	private int calculateDamage() {
-		int damage = 1;
-		return damage;
-	}
+
 }

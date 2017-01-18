@@ -6,28 +6,17 @@ public enum CharacterState { idle, moving, knockback, taunt, frozen, dead, attac
 abstract public class Character : MonoBehaviour
 {
 
-    private int maxHealth;
+    public int maxHealth;
     private int health;
-    private int attackPower;
+    private int attackPower; 
     private float knockback;
     private CharacterState state;
     private float speed;
-    protected Animator animator;
-    public bool canMove;
+    public Animator CharacterAnimator { get; set; }
+    public bool CanMove { get; set; }
+    public bool Moving { get; set; }
 
 
-
-    public Character(int maxHealth, int health, int attackPower, int knockback, CharacterState state, int speed, Animator animator, bool canMove)
-    {
-        MaxHealth = maxHealth;
-        Health = health;
-        AttackPower = attackPower;
-        Knockback = knockback;
-        State = state;
-        Speed = speed;
-        this.animator = animator;
-        this.canMove = canMove;
-    }
 
 
 
@@ -53,17 +42,21 @@ abstract public class Character : MonoBehaviour
 
         set
         {
-            if (value < 0)
+            if (value <= 0)
             {
                 health = 0;
+                Debug.Log("Health set to 0.");
+                Die();
             }
-            else if (value > maxHealth)
+            else if (value > MaxHealth)
             {
-                health = maxHealth;
+                health = MaxHealth;
+                Debug.Log("New health value is greater than maxHealth. Health set to maxHealth.");
             }
             else
             {
                 health = value;
+                Debug.Log("Health changed to "+value);
             }
         }
     }
@@ -116,12 +109,12 @@ abstract public class Character : MonoBehaviour
 
         set
         {
+
             //State can't be changed after the character dies.
-            if (State != CharacterState.dead)
+            if (State != CharacterState.dead && value != state)
             {
-
                 state = value;
-
+                Debug.Log("Character's state changed to " + state.ToString());
             }
 
         }
@@ -129,48 +122,62 @@ abstract public class Character : MonoBehaviour
 
 
 
+
     public void TakeDamage(int damage, float knockback)
     {
 
-        Health = Health - damage;
-        
-        if (Health > 0)
-        {
-            animator.SetTrigger("Knockback");
+        if (State != CharacterState.dead && State != CharacterState.knockback) {
+
+            Health = Health - damage;
+            CharacterAnimator.CrossFade("Knockback", 0.0f);
             State = CharacterState.knockback;
-            //move character a certain amount
-        }
-        else {
-            //call Die()
+
+            if (knockback > 0)
+            {
+                //Move the character according to the knockback.
+            }
+
+            StartCoroutine(StopCharacter(2.0f));
+
         }
 
     }
 
     public void OutOfBounds()
     {
-        
-        //if gameObject is out of bounds, call Die()
+        Die();
+    }
+
+    public void SetMovementAnimation() {
+
+        if (!CharacterAnimator.GetCurrentAnimatorStateInfo(0).IsName("Attack") 
+            && Moving == false
+            && !CharacterAnimator.GetCurrentAnimatorStateInfo(0).IsName("Death"))
+            {
+                State = CharacterState.idle;
+                CharacterAnimator.CrossFade("Idle", 0.0f);
+                CanMove = true;
+            }
 
     }
 
-    /*
-    public void CalculateDamage() {}
-    */
 
     protected virtual void Attack() { }
 
-    protected virtual void Die() {
-        //animator.SetTrigger("Death");
-        //State = CharacterState.dead;
-    }
+    protected virtual void Die() { }
 
     
 
-    IEnumerator StopCharacter(float waitDuration)
+    protected IEnumerator StopCharacter(float waitDuration)
     {
-        canMove = false;
+        CanMove = false;
         yield return new WaitForSeconds(waitDuration);
-        canMove = true;
+        CanMove = true;
+    }
+
+    protected IEnumerator Wait(float waitDuration)
+    {
+        yield return new WaitForSeconds(waitDuration);
     }
 
 }
