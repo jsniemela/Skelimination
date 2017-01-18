@@ -1,13 +1,11 @@
 ﻿using UnityEngine;
 using System.Collections;
+using CnControls;
 
-public class Player : Character  {
+public class Player : MonoBehaviour  {
 	bool moving = false;
 	bool canMove = true;
-
-    public Player() {
-        speed = 2.0f;
-    }
+    float speed = 2.0f;
 
 	void Start () {
 	
@@ -17,29 +15,11 @@ public class Player : Character  {
 	void Update () {
 		if (canMove == true) 
 		{
-			var horizontalMovement = Input.GetAxis ("Horizontal");
-			var verticalMovement = Input.GetAxis ("Vertical");
-			var movement = new Vector3 (horizontalMovement, 0.0f, verticalMovement);
-			movement *= speed/10;
-			moving = horizontalMovement != 0 || verticalMovement != 0;
+            //Lock rotation so that the character doesn't fall over
+            transform.rotation = Quaternion.Euler(0, transform.rotation.eulerAngles.y, 0);
 
-			//Vector3 relative = transform.rotation.eulerAngles;
-			//int relative.y = Camera.main.transform.localEulerAngles; 
-
-			if (movement != Vector3.zero) {
-				//var targetDirection = new Vector3 (Input.GetAxis ("Horizontal"), 0.0f, Input.GetAxis ("Vertical"));
-				//targetDirection = Camera.main.transform.TransformDirection (targetDirection);
-				//targetDirection.y = 0.0f;
-				Quaternion targetRotation = Quaternion.LookRotation (movement, Vector3.up);
-				float rotationSpeed = 60.0f;
-				Quaternion newRotation = Quaternion.Lerp (GetComponent<Rigidbody> ().rotation, targetRotation, rotationSpeed * Time.deltaTime);
-				GetComponent<Rigidbody> ().MoveRotation (newRotation);
-			}
-			var characterMovement = transform.position + movement;
-			if (moving) {
-				GetComponent<Rigidbody> ().MovePosition (characterMovement);
-				GetComponent<Animator> ().CrossFade ("Run", 0.0f);
-			}
+            Movement();
+            
 
 		}
 
@@ -49,7 +29,7 @@ public class Player : Character  {
 			canMove = true;
 		}
 
-		if (Input.GetButton("Attack")){
+		if (CnInputManager.GetButton("Attack")){
 			if (true) { 
 				canMove = false;
 				moving = false;
@@ -58,6 +38,44 @@ public class Player : Character  {
 			}
 		}
 	}
+
+    private void Movement ()
+    {
+        //get horizontal and vertical input from controller
+        float horizontalMovement = CnInputManager.GetAxis("Horizontal");
+        float verticalMovement = CnInputManager.GetAxis("Vertical");
+
+        //apply input to movement direction
+        var movement = new Vector3(horizontalMovement, 0.0f, verticalMovement);
+
+        //apply camera direction to movement
+        movement = Camera.main.transform.TransformDirection(movement);
+        movement.y = 0.0f;
+
+        //apply speed to movement
+        movement *= speed / 10;
+        //change moving state to true when moving
+        moving = horizontalMovement != 0 || verticalMovement != 0;
+
+        if (movement != Vector3.zero)
+        {
+            //var targetDirection = new Vector3 (Input.GetAxis ("Horizontal"), 0.0f, Input.GetAxis ("Vertical"));
+            //targetDirection = Camera.main.transform.TransformDirection (targetDirection);
+            //targetDirection.y = 0.0f;
+            Quaternion targetRotation = Quaternion.LookRotation(movement, Vector3.up);
+            float rotationSpeed = 60.0f;
+            Quaternion newRotation = Quaternion.Lerp(GetComponent<Rigidbody>().rotation, targetRotation, rotationSpeed * Time.deltaTime);
+            GetComponent<Rigidbody>().MoveRotation(newRotation);
+        }
+        var characterMovement = transform.position + movement;
+        if (moving)
+        {
+            //move character
+            GetComponent<Rigidbody>().MovePosition(characterMovement);
+            //fade into running animation
+            GetComponent<Animator>().CrossFade("Run", 0.0f);
+        }
+    }
 
 
 	private void Attack() {
