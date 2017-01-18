@@ -3,8 +3,8 @@ using System.Collections;
 using CnControls;
 
 public class Player : Character  {
+    private GameObject attackTarget;
 
- 
     public void InitializePlayer(int maxHealth, int health, int attackPower, float knockback, CharacterState state, float speed, Animator animator, bool canMove, bool moving)
     { 
         MaxHealth = maxHealth;
@@ -98,6 +98,27 @@ public class Player : Character  {
         CharacterAnimator.CrossFade("Attack", 0.0f);
         State = CharacterState.attack;
         //Debug.Log("Player attacked.");
+    }
+
+    private void OnCollisionStay(Collision collision)
+    {
+        if(collision.transform.tag == "Skeleton")
+        {
+            if(State == CharacterState.attack) {
+                Debug.Log("Attack collided with a skeleton");
+                
+                attackTarget = collision.gameObject;
+                StartCoroutine(attackDelay(0.3f));
+            }
+        }
+    }
+
+    protected IEnumerator attackDelay(float waitDuration)
+    {
+        yield return new WaitForSeconds(waitDuration);
+        Debug.Log("Knocked back");
+        attackTarget.transform.forward = -this.transform.forward;
+        attackTarget.GetComponent<Animator>().CrossFade("Knockback", 0.0f);
     }
 
     protected override void Die()
