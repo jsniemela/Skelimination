@@ -143,24 +143,31 @@ abstract public class Character : MonoBehaviour
 
     }
 
+    //The character 
     public void OutOfBounds()
     {
+        //Out of bounds notification to GameManager.
         Die();
     }
 
-    public void SetMovementAnimation() {
+    //Change character's state and animation to idle if he isn't moving and animations "Attack", 
+    //"Death", "Taunt" or knockback aren't playing. Also allows the character to move again by setting CanMove to true.
+    //All the animator's animations except "Death" lead to "Idle" automatically.        
+    public void SetMovementAnimation()
+    {
 
-        if (!CharacterAnimator.GetCurrentAnimatorStateInfo(0).IsName("Attack") 
-            && Moving == false
-            && !CharacterAnimator.GetCurrentAnimatorStateInfo(0).IsName("Death"))
+        if (Moving == false
+            && !CharacterAnimator.GetCurrentAnimatorStateInfo(0).IsName("Attack")        
+            && !CharacterAnimator.GetCurrentAnimatorStateInfo(0).IsName("Death")
+            && !CharacterAnimator.GetCurrentAnimatorStateInfo(0).IsName("Taunt")
+            && !CharacterAnimator.GetCurrentAnimatorStateInfo(0).IsName("Knockback"))
             {
                 State = CharacterState.idle;
                 CharacterAnimator.CrossFade("Idle", 0.0f);
                 CanMove = true;
             }
-
     }
-
+    
 
     protected virtual void Attack() { }
 
