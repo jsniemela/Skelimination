@@ -106,7 +106,6 @@ public class Player : Character  {
         {
             if(State == CharacterState.attack) {
                 Debug.Log("Attack collided with a skeleton");
-                
                 attackTarget = collision.gameObject;
                 StartCoroutine(attackDelay(0.3f));
             }
@@ -118,7 +117,7 @@ public class Player : Character  {
         yield return new WaitForSeconds(waitDuration);
         Debug.Log("Knocked back");
         attackTarget.transform.forward = -this.transform.forward;
-        attackTarget.GetComponent<Animator>().CrossFade("Knockback", 0.0f);
+        //attackTarget.GetComponent<Animator>().CrossFade("Knockback", 0.0f);
     }
 
     protected override void Die()
