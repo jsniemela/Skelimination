@@ -121,28 +121,6 @@ abstract public class Character : MonoBehaviour
     }
 
 
-
-
-    public void TakeDamage(int damage, float knockback)
-    {
-
-        if (State != CharacterState.dead && State != CharacterState.knockback) {
-
-            Health = Health - damage;
-            CharacterAnimator.CrossFade("Knockback", 0.0f);
-            State = CharacterState.knockback;
-
-            if (knockback > 0)
-            {
-                //Move the character according to the knockback.
-            }
-
-            StartCoroutine(StopCharacter(2.0f));
-
-        }
-
-    }
-
     //The character 
     public void OutOfBounds()
     {
@@ -167,7 +145,8 @@ abstract public class Character : MonoBehaviour
                 CanMove = true;
             }
     }
-    
+
+    public virtual void TakeDamage(int damage, float knockback) { }
 
     protected virtual void Attack() { }
 

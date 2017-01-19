@@ -93,8 +93,28 @@ public class Player : Character  {
         }
     }
 
+    public override void TakeDamage(int damage, float knockback)
+    {
 
-	protected override void Attack() {
+        if (State != CharacterState.dead && State != CharacterState.knockback)
+        {
+
+            Health = Health - damage;
+            CharacterAnimator.CrossFade("Knockback", 0.0f);
+            State = CharacterState.knockback;
+
+            if (knockback > 0)
+            {
+                //Move the character according to the knockback.
+            }
+
+            StartCoroutine(StopCharacter(2.0f));
+
+        }
+
+    }
+
+    protected override void Attack() {
         CharacterAnimator.CrossFade("Attack", 0.0f);
         //Increase collider size during attack
         GetComponent<BoxCollider>().size = new Vector3(1.8f, 1.4f, 1.8f);

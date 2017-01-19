@@ -88,21 +88,11 @@ public class Enemy : Character
         //Decide a new command if the previous one has been executed.
         if (commandDecided == false)
         {
+            StopAllCoroutines();
             DecideCommand();
         }
 
-        //Set the animation to "Run" and change the state to moving if the GameObject's rigidbody is moving.
-        if (!GetComponent<Rigidbody>().IsSleeping())
-        {
-            CharacterAnimator.CrossFade("Run", 0.0f);
-            State = CharacterState.moving;
-            Moving = true;
-        }
-        else {
-            Moving = false;
-        }
-
-        //Change the animation and state to idle if the 
+        //Change the animation and state to idle if needed.
         SetMovementAnimation();
 
     }
@@ -124,6 +114,7 @@ public class Enemy : Character
     }
 
     //Calculates a randomized command based on his personality that the enemy will execute.
+    //The commands are Coroutines that run for a certain period of time.
     public void DecideCommand()
     {
 
@@ -133,13 +124,13 @@ public class Enemy : Character
         if (Personality == EnemyPersonality.aggressive)
         {
 
-            if (command <= 6)
+            if (command <= 5)
             {
                 StartCoroutine(AttackCommand((float)random.Next(5, 10)));
             }
-            else if (command <= 9)
+            else if (command <= 8)
             {
-                StartCoroutine(TauntCommand((float)random.Next(3, 5)));
+                StartCoroutine(TauntCommand());
             }
             else
             {
@@ -162,7 +153,7 @@ public class Enemy : Character
             }
             else
             {
-                StartCoroutine(TauntCommand((float)random.Next(3, 7)));
+                StartCoroutine(TauntCommand());
             }
 
         }
@@ -173,7 +164,7 @@ public class Enemy : Character
 
             if (command <= 5)
             {
-                StartCoroutine(TauntCommand((float)random.Next(5, 10)));
+                StartCoroutine(TauntCommand());
             }
             else if (command <= 8)
             {
@@ -195,35 +186,109 @@ public class Enemy : Character
 
     }
 
-    //Moves towards the selected target.
-    private void MoveTowardsTarget()
+    //Moves the enemy towards the selected target.
+    private void MoveTowardsTarget(Transform targetPosition)
     {
 
-        if (CanMove == true)
+        if (CanMove == true && State != CharacterState.knockback && State != CharacterState.dead)
         {
 
-            //move towards the target
+            float step = Speed * Time.deltaTime;
+            
+            transform.position = Vector3.MoveTowards(transform.position, targetPosition.position, step);
+            transform.LookAt(targetPosition);
+            SetEnemyToRun();
 
         }
 
     }
 
-    private void Taunt()
+    //Moves the enemy away from the target if he is within the avoidingDistance. If the target is outside the avoidinDistance,
+    //the enemy will stay still and use "Defend" animation. 
+    private void AvoidTarget(Transform targetPosition, float avoidingDistance)
     {
-        CanMove = false;
-        CharacterAnimator.CrossFade("Taunt", 0.0f);
+
+        if (CanMove == true && State != CharacterState.knockback && State != CharacterState.dead)
+        {
+
+            float step = -1 * Speed * Time.deltaTime;
+            float distanceToTarget = Vector3.Distance(transform.position, targetPosition.position);
+
+            if (distanceToTarget < avoidingDistance && State != CharacterState.knockback && State != CharacterState.dead)
+            {
+
+                transform.position = Vector3.MoveTowards(transform.position, targetPosition.position, step);
+                //Vector3 dir = Vector3.zero;
+                //transform.rotation = Quaternion.LookRotation(dir);
+                SetEnemyToRun();
+
+            }
+            else {
+                transform.LookAt(targetPosition);
+                Moving = false;
+                CharacterAnimator.CrossFade("Defend", 0.0f);
+            }
+            
+        }
+
     }
 
+    //A method for initializing run state and animation quickly.
+    private void SetEnemyToRun() {
 
+        State = CharacterState.moving;
+        Moving = true;
 
+        if (!CharacterAnimator.GetCurrentAnimatorStateInfo(0).IsName("Run"))
+        {
+            CharacterAnimator.CrossFade("Run", 0.0f);
+        }
+
+    }
+
+    //Enemy will attack the target if it is close enough (within the given minDistance).
+    private void AttackCharacterIfCloseEnough(Transform targetPosition, float minDistance) {
+
+        float distanceToTarget = Vector3.Distance(transform.position, targetPosition.position);
+
+        if (distanceToTarget < minDistance && State != CharacterState.knockback && State != CharacterState.dead)
+        {
+            Attack();
+        }
+
+    }
+
+    //Deals damage and moves the character.
+    public override void TakeDamage(int damage, float knockback)
+    {
+
+        if (State != CharacterState.dead && State != CharacterState.knockback)
+        {
+
+            Health = Health - damage;
+            CharacterAnimator.CrossFade("Knockback", 0.0f);
+            State = CharacterState.knockback;
+
+            StartCoroutine(StopCharacter(2.0f));
+
+            //executingCommand = false;
+            //commandDecided = false;
+
+        }
+
+    }
+
+    //Lauches the attack animation and stops movement for a while.
     protected override void Attack()
     {
-        //CanMove = false;
+        CanMove = false;
+        Moving = false;
         CharacterAnimator.CrossFade("Attack", 0.0f);
         State = CharacterState.attack;
-        Debug.Log("Enemy attacked.");
+        //Debug.Log("Enemy attacked.");
     }
 
+    //Kills the enemy, gives the player points and notifies the GameManager.
     protected override void Die()
     {
         CharacterAnimator.CrossFade("Death", 0.0f);
@@ -241,44 +306,69 @@ public class Enemy : Character
 
         Debug.Log("An enemy decided to use attack command for " + duration + " seconds.");
         StartCoroutine(CommandDuration(duration));
+        float attackDistance = (float)random.Next(2, 5);
         //select the target
 
         while (executingCommand == true)
         {
-            MoveTowardsTarget();
-            //hit him if you're close enough (call target's TakeDamage if there's a collision)
+            if (target != null) {
+                MoveTowardsTarget(target.transform);
+                AttackCharacterIfCloseEnough(target.transform, attackDistance);
+            }
+
             yield return null;
+
         }
 
-
+        yield return null;
 
     }
 
-    //Move away from the target.
+    //Keep distance to the target.
     private IEnumerator DefendCommand(float duration)
     {
 
         Debug.Log("An enemy decided to use defend command for " + duration + " seconds.");
         StartCoroutine(CommandDuration(duration));
+        float avoidingDistance = (float)random.Next(7, 10);
+        //float attackDistance = (float)random.Next(1, 3);
 
         while (executingCommand == true)
         {
+
+            if (target != null)
+            {
+                AvoidTarget(target.transform, avoidingDistance);
+                //AttackCharacterIfCloseEnough(target.transform, attackDistance);
+            }
+
             yield return null;
         }
+
+        yield return null;
 
     }
 
     //Taunt the target.
-    private IEnumerator TauntCommand(float duration)
+    private IEnumerator TauntCommand()
     {
 
-        Debug.Log("An enemy decided to use taunt command for " + duration + " seconds.");
-        StartCoroutine(CommandDuration(duration));
+        Debug.Log("An enemy decided to use taunt command.");
 
-        while (executingCommand == true)
-        {
-            yield return null;
+        if (target != null) {
+            transform.LookAt(target.transform);
         }
+        
+        executingCommand = true;
+        CanMove = false;
+        Moving = false;
+        CharacterAnimator.CrossFade("Taunt", 0.0f);
+        yield return new WaitForSeconds(3f);
+
+        executingCommand = false;
+        commandDecided = false;
+
+        yield return null;
 
     }
 
@@ -290,6 +380,7 @@ public class Enemy : Character
         yield return new WaitForSeconds(duration);
         executingCommand = false;
         commandDecided = false;
+        yield return null;
 
     }
 
