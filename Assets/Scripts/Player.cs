@@ -1,6 +1,7 @@
 ﻿using UnityEngine;
 using System.Collections;
 using CnControls;
+using UnityEngine.Networking;
 
 public class Player : Character  {
     private GameObject attackTarget;
@@ -27,12 +28,17 @@ public class Player : Character  {
 
 
 	void Start () {
-        
-
+        GameObject imagetarget = GameObject.FindGameObjectWithTag("ImageTarget");
+        transform.SetParent(imagetarget.transform, false);
     }
 
 	// Update is called once per frame
 	void Update () {
+        if (!isLocalPlayer)
+        {
+            return;
+        }
+
 		if (CanMove == true) 
 		{
 
