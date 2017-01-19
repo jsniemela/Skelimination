@@ -1,9 +1,10 @@
 ﻿using UnityEngine;
 using System.Collections;
+using UnityEngine.Networking;
 
 public enum CharacterState { idle, moving, knockback, taunt, frozen, dead, attack };
 
-abstract public class Character : MonoBehaviour
+abstract public class Character : NetworkBehaviour
 {
 
     public int maxHealth;
