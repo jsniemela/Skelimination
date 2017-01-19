@@ -96,6 +96,8 @@ public class Player : Character  {
 
 	protected override void Attack() {
         CharacterAnimator.CrossFade("Attack", 0.0f);
+        //Increase collider size during attack
+        GetComponent<BoxCollider>().size = new Vector3(1.8f, 1.4f, 1.8f);
         State = CharacterState.attack;
         //Debug.Log("Player attacked.");
     }
@@ -117,7 +119,14 @@ public class Player : Character  {
         yield return new WaitForSeconds(waitDuration);
         Debug.Log("Knocked back");
         attackTarget.transform.forward = -this.transform.forward;
+        attackTarget.GetComponent<Enemy>().TakeDamage(0, Knockback);
+        //Revert collider size back to normal after attack
+        GetComponent<BoxCollider>().size = new Vector3(1.4f, 1.4f, 1f);
         //attackTarget.GetComponent<Animator>().CrossFade("Knockback", 0.0f);
+        //yield return new WaitForSeconds(10f);
+        //attackTarget.GetComponent<Animator>().CrossFade("Idle", 0f);
+        //attackTarget.transform.position = attackTarget.GetComponentInChildren<SphereCollider>().transform.position;
+        //attackTarget.GetComponent<Rigidbody>().velocity = Vector3.zero;
     }
 
     protected override void Die()
