@@ -7,19 +7,26 @@ using UnityEngine;
 public class GameManager : MonoBehaviour
 {
 	public GameObject skeletonObject;
-
 	public int CurrentRound { get; private set; }
 	public int EnemyKills { get; private set; }
+
+	private List<SpawnArea> spawnAreas = new List<SpawnArea>();
+	private List<GameObject> enemies = new List<GameObject>();
 		
-	void Awake()
+	void Start()
 	{
 		if (FindObjectsOfType<GameManager>().Length > 1)
 			Debug.LogError("Multiple GameManager objects present in the scene");
+
+		spawnAreas.AddRange(FindObjectsOfType<SpawnArea>());
+		if (spawnAreas.Count == 0)
+			Debug.LogError("No spawn areas found in the scene");
 	}
 
-	void Start()
+	void Update()
 	{
-		OnRoundStart();
+		if (CurrentRound == 0)
+			OnRoundStart();
 	}
 
 	public static GameManager GetInstance()
@@ -47,8 +54,14 @@ public class GameManager : MonoBehaviour
 			return;
 		}
 
+		int spawnIndex = UnityEngine.Random.Range(0, spawnAreas.Count);
+		Vector3 startPosition = spawnAreas[spawnIndex].GetRandomPosition();
+
 		GameObject skeleton = (GameObject)Instantiate(skeletonObject, skeletonsGroup);
 		skeleton.transform.localScale = new Vector3(1.5f, 1.5f, 1.5f);
+		skeleton.transform.position = startPosition;
+
+		enemies.Add(skeleton);
 	}
 
 	public void OnRoundStart()
@@ -65,6 +78,7 @@ public class GameManager : MonoBehaviour
 		
 	public void OnDeath(GameObject victim, GameObject killer)
 	{
-
+		// if victim is a skeleton
+		enemies.Remove(victim);
 	}
 }
