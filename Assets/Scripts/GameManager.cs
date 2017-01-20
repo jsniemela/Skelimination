@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 public class GameManager : MonoBehaviour
 {
@@ -18,14 +19,42 @@ public class GameManager : MonoBehaviour
 	void Start()
 	{
 		if (FindObjectsOfType<GameManager>().Length > 1)
-			Debug.LogError("Multiple GameManager objects present in the scene");
+		{
+			Debug.LogWarning("Multiple GameManager objects present in the scene");
+			Destroy(this);
+			return;
+		}
 
+		SceneManager.sceneLoaded += OnSceneLoad;
+		SceneManager.LoadScene("Scenes/GameplayScene", LoadSceneMode.Additive);
+		
 		spawnAreas.AddRange(FindObjectsOfType<SpawnArea>());
 		if (spawnAreas.Count == 0)
 			Debug.LogError("No spawn areas found in the scene");
 
 		if (EnemyObject == null)
 			Debug.LogError("EnemyObject not set");
+	}
+
+	private void OnSceneLoad(Scene scene, LoadSceneMode mode)
+	{
+		SceneManager.sceneLoaded -= OnSceneLoad;
+
+		GameObject[] objects = FindObjectsOfType<GameObject>();
+
+		GameObject imageTarget = GameObject.FindGameObjectWithTag("ImageTarget");
+		Transform levelTransform = imageTarget.transform.FindChild("Level");
+
+		// parent all level related objects under ImageTarget.Level
+		GameObject attached = this.transform.gameObject;
+		for (int i=0; i<objects.Length; i++)
+		{
+			GameObject obj = objects[i];
+			if (obj == attached || obj.scene.name == "GameplayScene")
+				continue;
+
+			obj.transform.SetParent(levelTransform, true);
+		}
 	}
 
 	void Update()
