@@ -147,7 +147,7 @@ abstract public class Character : NetworkBehaviour
             }
     }
 
-    public virtual void TakeDamage(int damage, float knockback) { }
+    public virtual void TakeDamage(int damage, float knockback, GameObject attacker) { }
 
     protected virtual void Attack() { }
 

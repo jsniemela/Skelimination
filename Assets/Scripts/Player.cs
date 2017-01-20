@@ -99,7 +99,7 @@ public class Player : Character  {
         }
     }
 
-    public override void TakeDamage(int damage, float knockback)
+    public override void TakeDamage(int damage, float knockback, GameObject attacker)
     {
 
         if (State != CharacterState.dead && State != CharacterState.knockback)
@@ -145,7 +145,7 @@ public class Player : Character  {
         yield return new WaitForSeconds(waitDuration);
         Debug.Log("Knocked back");
         attackTarget.transform.forward = -this.transform.forward;
-        attackTarget.GetComponent<Enemy>().TakeDamage(0, Knockback);
+        attackTarget.GetComponent<Enemy>().TakeDamage(0, Knockback, gameObject);
         //Revert collider size back to normal after attack
         GetComponent<BoxCollider>().size = new Vector3(1.4f, 1.4f, 1f);
         //attackTarget.GetComponent<Animator>().CrossFade("Knockback", 0.0f);

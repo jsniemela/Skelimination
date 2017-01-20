@@ -65,7 +65,7 @@ public class Enemy : Character
         else
         {
             target = null;
-            Debug.LogError("An enemy couldn't find a GameObject with a tag Player. Target set to null");
+            Debug.Log("An enemy couldn't find a GameObject with a tag Player. Target set to null");
         }
 
     }
@@ -85,6 +85,10 @@ public class Enemy : Character
     void Update()
     {
 
+    }
+
+    private void FixedUpdate()
+    {
         //Decide a new command if the previous one has been executed.
         if (commandDecided == false)
         {
@@ -95,9 +99,10 @@ public class Enemy : Character
         //Change the animation and state to idle if needed.
         SetMovementAnimation();
 
+        if (target == null && GameObject.FindGameObjectsWithTag("Player").Length > 0) {
+            SelectTargetRandomly();
+        }
     }
-
-
 
     public EnemyPersonality Personality
     {
@@ -190,7 +195,7 @@ public class Enemy : Character
     private void MoveTowardsTarget(Transform targetPosition)
     {
 
-        if (CanMove == true && State != CharacterState.knockback && State != CharacterState.dead)
+        if (CanMove == true && State != CharacterState.knockback && State != CharacterState.dead && target != null)
         {
 
             float step = Speed * Time.deltaTime;
@@ -208,7 +213,7 @@ public class Enemy : Character
     private void AvoidTarget(Transform targetPosition, float avoidingDistance)
     {
 
-        if (CanMove == true && State != CharacterState.knockback && State != CharacterState.dead)
+        if (CanMove == true && State != CharacterState.knockback && State != CharacterState.dead && target != null)
         {
 
             float step = -1 * Speed * Time.deltaTime;
@@ -258,8 +263,8 @@ public class Enemy : Character
 
     }
 
-    //Deals damage and moves the character.
-    public override void TakeDamage(int damage, float knockback)
+    //Deals damage, knocks the enemy back and selects the attacker as the new target.
+    public override void TakeDamage(int damage, float knockback, GameObject attacker)
     {
 
         if (State != CharacterState.dead && State != CharacterState.knockback)
@@ -268,7 +273,7 @@ public class Enemy : Character
             Health = Health - damage;
             CharacterAnimator.CrossFade("Knockback", 0.0f);
             State = CharacterState.knockback;
-
+            target = attacker;
             StartCoroutine(StopCharacter(2.0f));
 
             //executingCommand = false;
@@ -320,6 +325,7 @@ public class Enemy : Character
 
         }
 
+        SelectTargetRandomly();
         yield return null;
 
     }
@@ -341,10 +347,12 @@ public class Enemy : Character
                 AvoidTarget(target.transform, avoidingDistance);
                 //AttackCharacterIfCloseEnough(target.transform, attackDistance);
             }
-
+            
             yield return null;
+
         }
 
+        SelectTargetRandomly();
         yield return null;
 
     }
@@ -355,8 +363,12 @@ public class Enemy : Character
 
         Debug.Log("An enemy decided to use taunt command.");
 
-        if (target != null) {
+        if (target != null)
+        {
             transform.LookAt(target.transform);
+        }
+        else {
+            SelectTargetRandomly();
         }
         
         executingCommand = true;
