@@ -2,7 +2,7 @@
 using System.Collections;
 using UnityEngine.Networking;
 
-public enum CharacterState { idle, moving, knockback, taunt, frozen, dead, attack };
+public enum CharacterState { idle, moving, knockback, taunt, frozen, dead, attack, defend };
 
 abstract public class Character : NetworkBehaviour
 {
@@ -129,23 +129,33 @@ abstract public class Character : NetworkBehaviour
         Die();
     }
 
-    //Change character's state and animation to idle if he isn't moving and animations "Attack", 
-    //"Death", "Taunt" or knockback aren't playing. Also allows the character to move again by setting CanMove to true.
-    //All the animator's animations except "Death" lead to "Idle" automatically.        
+    
+    //Changes character's state to idle if the currently playing animation is  called "Idle". Also allows the 
+    //character to move again by setting CanMove to true. All the animator's animations except "Death" crossfade to "Idle" automatically.   
     public void SetMovementAnimation()
     {
 
-        if (Moving == false
-            && !CharacterAnimator.GetCurrentAnimatorStateInfo(0).IsName("Attack")        
-            && !CharacterAnimator.GetCurrentAnimatorStateInfo(0).IsName("Death")
-            && !CharacterAnimator.GetCurrentAnimatorStateInfo(0).IsName("Taunt")
-            && !CharacterAnimator.GetCurrentAnimatorStateInfo(0).IsName("Knockback"))
+        if (Moving == false && CharacterAnimator.GetCurrentAnimatorStateInfo(0).IsName("Idle"))
+        {
+            State = CharacterState.idle;
+            //CharacterAnimator.CrossFade("Idle", 0.0f);
+            CanMove = true;
+        }
+        else if (Moving == true && CanMove == true && State != CharacterState.knockback && State != CharacterState.dead) {
+
+            if (State != CharacterState.moving)
             {
-                State = CharacterState.idle;
-                CharacterAnimator.CrossFade("Idle", 0.0f);
-                CanMove = true;
+                State = CharacterState.moving;
             }
+
+            if (!CharacterAnimator.GetCurrentAnimatorStateInfo(0).IsName("Run") && !CharacterAnimator.GetCurrentAnimatorStateInfo(0).IsName("Walk"))
+            {
+                CharacterAnimator.CrossFade("Run", 0.0f);
+
+            }
+        }
     }
+    
 
     public virtual void TakeDamage(int damage, float knockback, GameObject attacker) { }
 
@@ -158,6 +168,7 @@ abstract public class Character : NetworkBehaviour
     protected IEnumerator StopCharacter(float waitDuration)
     {
         CanMove = false;
+        Moving = false;
         yield return new WaitForSeconds(waitDuration);
         CanMove = true;
     }

@@ -60,20 +60,34 @@ public class Enemy : Character
             GameObject[] targetArray = GameObject.FindGameObjectsWithTag("Player");
             int randomIndex = random.Next(0, targetArray.Length - 1);
             target = targetArray[randomIndex];
+            RotateSmoothlyTowardsTarget(target.transform);
             Debug.Log("An enemy selected the player number " + randomIndex + " as its target.");
+
+            /*
+            foreach (GameObject target in targetArray) {
+
+                if (target.GetComponent<Player>().State != CharacterState.dead)
+                {
+
+                }
+
+            }
+            */
         }
+        /*
         else
         {
-            target = null;
-            Debug.Log("An enemy couldn't find a GameObject with a tag Player. Target set to null");
+            //target = null;
+            //Debug.Log("An enemy couldn't find a GameObject with a tag Player. Target set to null");
         }
+        */
 
     }
 
 
     private void Awake()
     {
-        InitializeEnemy(3, 3, 1, 1.0f, CharacterState.idle, 2.0f, GetComponent<Animator>(), true, false);
+        InitializeEnemy(3, 3, 1, 1.0f, CharacterState.idle, 3.5f, GetComponent<Animator>(), true, false);
     }
 
     void Start()
@@ -89,19 +103,29 @@ public class Enemy : Character
 
     private void FixedUpdate()
     {
-        //Decide a new command if the previous one has been executed.
-        if (commandDecided == false)
+
+        //Stop executing update methods if the enemy is dead.
+        if (State == CharacterState.dead) {
+            return;
+        }
+
+        //Select a new target (current Scene's GameObject with a tag "Player") randomly if there is no current target. 
+        if (target == null && GameObject.FindGameObjectsWithTag("Player").Length > 0)
         {
+            SelectTargetRandomly();
+        }
+
+        //Decide a new command if the previous one has been executed.
+        if (commandDecided == false && executingCommand == false && target != null)
+        {
+            CanMove = true;
             StopAllCoroutines();
             DecideCommand();
         }
 
-        //Change the animation and state to idle if needed.
+        //Change the animation and state to idle or run according to the situation.
         SetMovementAnimation();
 
-        if (target == null && GameObject.FindGameObjectsWithTag("Player").Length > 0) {
-            SelectTargetRandomly();
-        }
     }
 
     public EnemyPersonality Personality
@@ -129,7 +153,7 @@ public class Enemy : Character
         if (Personality == EnemyPersonality.aggressive)
         {
 
-            if (command <= 5)
+            if (command <= 6)
             {
                 StartCoroutine(AttackCommand((float)random.Next(5, 10)));
             }
@@ -195,15 +219,21 @@ public class Enemy : Character
     private void MoveTowardsTarget(Transform targetPosition)
     {
 
-        if (CanMove == true && State != CharacterState.knockback && State != CharacterState.dead && target != null)
+        if (CanMove == true 
+        && State != CharacterState.knockback 
+        && State != CharacterState.dead 
+        && State != CharacterState.attack 
+        && target != null)
         {
 
-            float step = Speed * Time.deltaTime;
-            
-            transform.position = Vector3.MoveTowards(transform.position, targetPosition.position, step);
-            transform.LookAt(targetPosition);
-            SetEnemyToRun();
+            Moving = true;
 
+            float step = Speed * Time.deltaTime;
+
+            //transform.LookAt(targetPosition);
+            RotateSmoothlyTowardsTarget(targetPosition);
+            transform.position = Vector3.MoveTowards(transform.position, targetPosition.position, step);
+            
         }
 
     }
@@ -213,42 +243,53 @@ public class Enemy : Character
     private void AvoidTarget(Transform targetPosition, float avoidingDistance)
     {
 
-        if (CanMove == true && State != CharacterState.knockback && State != CharacterState.dead && target != null)
+        if (CanMove == true 
+        && State != CharacterState.knockback
+        && State != CharacterState.dead 
+        && State != CharacterState.knockback 
+        && target != null)
         {
 
             float step = -1 * Speed * Time.deltaTime;
             float distanceToTarget = Vector3.Distance(transform.position, targetPosition.position);
 
-            if (distanceToTarget < avoidingDistance && State != CharacterState.knockback && State != CharacterState.dead)
+            if (distanceToTarget < avoidingDistance)
             {
 
+                Moving = true;
                 transform.position = Vector3.MoveTowards(transform.position, targetPosition.position, step);
-                //Vector3 dir = Vector3.zero;
-                //transform.rotation = Quaternion.LookRotation(dir);
-                SetEnemyToRun();
+                transform.LookAt(targetPosition);
+                //CharacterAnimator.Play("Walk", -1, 0f);
+
+                if (!CharacterAnimator.GetCurrentAnimatorStateInfo(0).IsName("Walk"))
+                {
+                    CharacterAnimator.CrossFade("Walk", 0.0f);
+                    //CharacterAnimator.Play("Walk", 1, -1f);
+                }
 
             }
             else {
-                transform.LookAt(targetPosition);
                 Moving = false;
-                CharacterAnimator.CrossFade("Defend", 0.0f);
+                State = CharacterState.defend;
+                //transform.LookAt(targetPosition);
+                RotateSmoothlyTowardsTarget(targetPosition);
+                
+
+                if (!CharacterAnimator.GetCurrentAnimatorStateInfo(0).IsName("Defend")) {
+                    CharacterAnimator.CrossFade("Defend", 0.0f);
+                }                            
+                
+                //StartCoroutine(StopCharacter(3.0f));
             }
             
         }
 
     }
 
-    //A method for initializing run state and animation quickly.
-    private void SetEnemyToRun() {
-
-        State = CharacterState.moving;
-        Moving = true;
-
-        if (!CharacterAnimator.GetCurrentAnimatorStateInfo(0).IsName("Run"))
-        {
-            CharacterAnimator.CrossFade("Run", 0.0f);
-        }
-
+    private void RotateSmoothlyTowardsTarget(Transform targetPosition) {
+        Vector3 targetPoint = targetPosition.position;
+        Quaternion targetRotation = Quaternion.LookRotation(targetPoint - transform.position, Vector3.up);
+        transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, Time.deltaTime * 2.0f);
     }
 
     //Enemy will attack the target if it is close enough (within the given minDistance).
@@ -256,7 +297,7 @@ public class Enemy : Character
 
         float distanceToTarget = Vector3.Distance(transform.position, targetPosition.position);
 
-        if (distanceToTarget < minDistance && State != CharacterState.knockback && State != CharacterState.dead)
+        if (distanceToTarget < minDistance && State != CharacterState.knockback && State != CharacterState.dead && State != CharacterState.attack)
         {
             Attack();
         }
@@ -272,10 +313,14 @@ public class Enemy : Character
 
             Health = Health - damage;
             CharacterAnimator.CrossFade("Knockback", 0.0f);
-            State = CharacterState.knockback;
-            target = attacker;
-            StartCoroutine(StopCharacter(2.0f));
 
+            if (attacker.tag.Equals("Player")) {
+                target = attacker;
+            }  
+                          
+            State = CharacterState.knockback;
+            StartCoroutine(StopCharacter(2.0f));
+            
             //executingCommand = false;
             //commandDecided = false;
 
@@ -286,10 +331,15 @@ public class Enemy : Character
     //Lauches the attack animation and stops movement for a while.
     protected override void Attack()
     {
-        CanMove = false;
-        Moving = false;
-        CharacterAnimator.CrossFade("Attack", 0.0f);
+        StartCoroutine(StopCharacter(3.0f));
+
         State = CharacterState.attack;
+
+        if (!CharacterAnimator.GetCurrentAnimatorStateInfo(0).IsName("Attack"))
+        {
+            CharacterAnimator.CrossFade("Attack", 0.0f);
+        }
+
         //Debug.Log("Enemy attacked.");
     }
 
@@ -300,7 +350,7 @@ public class Enemy : Character
         State = CharacterState.dead;
         Debug.Log("Enemy died.");
         //Notify GameLogic, give points to the player
-        StartCoroutine(Wait(2.0f));
+        //StartCoroutine(Wait(2.0f));
         Destroy(gameObject);
     }
 
@@ -311,7 +361,7 @@ public class Enemy : Character
 
         Debug.Log("An enemy decided to use attack command for " + duration + " seconds.");
         StartCoroutine(CommandDuration(duration));
-        float attackDistance = (float)random.Next(2, 5);
+        float attackDistance = (float)random.Next(3, 5);
         //select the target
 
         while (executingCommand == true)
@@ -325,7 +375,7 @@ public class Enemy : Character
 
         }
 
-        SelectTargetRandomly();
+        //SelectTargetRandomly();
         yield return null;
 
     }
@@ -352,7 +402,7 @@ public class Enemy : Character
 
         }
 
-        SelectTargetRandomly();
+        //SelectTargetRandomly();
         yield return null;
 
     }
@@ -362,21 +412,22 @@ public class Enemy : Character
     {
 
         Debug.Log("An enemy decided to use taunt command.");
+        executingCommand = true;
 
         if (target != null)
         {
-            transform.LookAt(target.transform);
-        }
-        else {
-            SelectTargetRandomly();
+            //transform.LookAt(target.transform);
+            RotateSmoothlyTowardsTarget(target.transform);
+            yield return new WaitForSeconds(1f);
         }
         
-        executingCommand = true;
         CanMove = false;
         Moving = false;
-        CharacterAnimator.CrossFade("Taunt", 0.0f);
-        yield return new WaitForSeconds(3f);
 
+        CharacterAnimator.CrossFade("Taunt", 0.0f);
+        yield return new WaitForSeconds(1f);
+
+        CanMove = true;
         executingCommand = false;
         commandDecided = false;
 
