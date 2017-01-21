@@ -5,6 +5,7 @@ using UnityEngine.Networking;
 
 public class Player : Character  {
     private GameObject attackTarget;
+    Vector3 movement;
 
     public void InitializePlayer(int maxHealth, int health, int attackPower, float knockback, CharacterState state, float speed, Animator animator, bool canMove, bool moving)
     { 
@@ -66,7 +67,9 @@ public class Player : Character  {
         float verticalMovement = CnInputManager.GetAxis("Vertical");
 
         //apply input to movement direction
+
         Vector3 movement = new Vector3(horizontalMovement, 0.0f, verticalMovement);
+        movement = new Vector3(horizontalMovement, 0.0f, verticalMovement);
 
         //apply camera direction to movement
         movement = Camera.main.transform.TransformDirection(movement);
