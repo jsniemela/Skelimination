@@ -25,7 +25,7 @@ public class Enemy : Character
     //executingCommand is true when the enemy is currently executing a command.
     private bool executingCommand;
 
-    
+
 
     public void InitializeEnemy(int maxHealth, int health, int attackPower, float knockback, CharacterState state, float speed, Animator animator, bool canMove, bool moving)
     {
@@ -48,39 +48,54 @@ public class Enemy : Character
 
         commandDecided = false;
         executingCommand = false;
-        
+
     }
 
     //Selects the attack target randomly from the GameObjects tagged with "Player". Sets the target to null if there aren't
     //any player objects in the scene.
-    private void SelectTargetRandomly() {
+    private void SelectTargetRandomly()
+    {
 
         if (GameObject.FindGameObjectsWithTag("Player").Length > 0)
         {
+
             GameObject[] targetArray = GameObject.FindGameObjectsWithTag("Player");
             int randomIndex = random.Next(0, targetArray.Length - 1);
+
             target = targetArray[randomIndex];
             RotateSmoothlyTowardsTarget(target.transform);
-            Debug.Log("An enemy selected the player number " + randomIndex + " as its target.");
+            
+            //The selected target is already dead. Switch the target to a living player if possible.
+            if (target.GetComponent<Player>().State == CharacterState.dead && targetArray.Length > 1) {
 
-            /*
-            foreach (GameObject target in targetArray) {
-
-                if (target.GetComponent<Player>().State != CharacterState.dead)
+                foreach (GameObject player in targetArray)
                 {
+
+                    if (target.GetComponent<Player>().State != CharacterState.dead)
+                    {
+                        target = player;
+                        RotateSmoothlyTowardsTarget(target.transform);
+                        return;
+                    }
 
                 }
 
-            }
-            */
+            } 
+                  
         }
-        /*
+
+        //No players in the scene.
         else
         {
-            //target = null;
+            target = null;
             //Debug.Log("An enemy couldn't find a GameObject with a tag Player. Target set to null");
         }
-        */
+
+        //A target was successfully selected.
+        if (target != null)
+        {
+            Debug.Log("An enemy selected a player as its target.");
+        }
 
     }
 
@@ -105,12 +120,14 @@ public class Enemy : Character
     {
 
         //Stop executing update methods if the enemy is dead.
-        if (State == CharacterState.dead) {
+        if (State == CharacterState.dead)
+        {
             return;
         }
 
-        //Select a new target (current Scene's GameObject with a tag "Player") randomly if there is no current target. 
-        if (target == null && GameObject.FindGameObjectsWithTag("Player").Length > 0)
+        //Select a new target (current Scene's GameObject with a tag "Player") randomly if there is no current target 
+        //or if the target is dead. 
+        if (target == null || target.GetComponent<Player>().State == CharacterState.dead)
         {
             SelectTargetRandomly();
         }
@@ -138,7 +155,7 @@ public class Enemy : Character
         set
         {
             personality = value;
-            Debug.Log("Enemy's personality changed to "+ personality.ToString() + ".");
+            Debug.Log("Enemy's personality changed to " + personality.ToString() + ".");
         }
     }
 
@@ -219,10 +236,10 @@ public class Enemy : Character
     private void MoveTowardsTarget(Transform targetPosition)
     {
 
-        if (CanMove == true 
-        && State != CharacterState.knockback 
-        && State != CharacterState.dead 
-        && State != CharacterState.attack 
+        if (CanMove == true
+        && State != CharacterState.knockback
+        && State != CharacterState.dead
+        && State != CharacterState.attack
         && target != null)
         {
 
@@ -230,10 +247,9 @@ public class Enemy : Character
 
             float step = Speed * Time.deltaTime;
 
-            //transform.LookAt(targetPosition);
             RotateSmoothlyTowardsTarget(targetPosition);
             transform.position = Vector3.MoveTowards(transform.position, targetPosition.position, step);
-            
+
         }
 
     }
@@ -243,10 +259,10 @@ public class Enemy : Character
     private void AvoidTarget(Transform targetPosition, float avoidingDistance)
     {
 
-        if (CanMove == true 
+        if (CanMove == true
         && State != CharacterState.knockback
-        && State != CharacterState.dead 
-        && State != CharacterState.knockback 
+        && State != CharacterState.dead
+        && State != CharacterState.knockback
         && target != null)
         {
 
@@ -259,41 +275,40 @@ public class Enemy : Character
                 Moving = true;
                 transform.position = Vector3.MoveTowards(transform.position, targetPosition.position, step);
                 transform.LookAt(targetPosition);
-                //CharacterAnimator.Play("Walk", -1, 0f);
 
                 if (!CharacterAnimator.GetCurrentAnimatorStateInfo(0).IsName("Walk"))
                 {
                     CharacterAnimator.CrossFade("Walk", 0.0f);
-                    //CharacterAnimator.Play("Walk", 1, -1f);
                 }
 
             }
-            else {
+            else
+            {
                 Moving = false;
                 State = CharacterState.defend;
-                //transform.LookAt(targetPosition);
                 RotateSmoothlyTowardsTarget(targetPosition);
-                
 
-                if (!CharacterAnimator.GetCurrentAnimatorStateInfo(0).IsName("Defend")) {
+                if (!CharacterAnimator.GetCurrentAnimatorStateInfo(0).IsName("Defend"))
+                {
                     CharacterAnimator.CrossFade("Defend", 0.0f);
-                }                            
-                
-                //StartCoroutine(StopCharacter(3.0f));
+                }
+
             }
-            
+
         }
 
     }
 
-    private void RotateSmoothlyTowardsTarget(Transform targetPosition) {
+    private void RotateSmoothlyTowardsTarget(Transform targetPosition)
+    {
         Vector3 targetPoint = targetPosition.position;
         Quaternion targetRotation = Quaternion.LookRotation(targetPoint - transform.position, Vector3.up);
-        transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, Time.deltaTime * 2.0f);
+        transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, Time.deltaTime * 2.5f);
     }
 
     //Enemy will attack the target if it is close enough (within the given minDistance).
-    private void AttackCharacterIfCloseEnough(Transform targetPosition, float minDistance) {
+    private void AttackCharacterIfCloseEnough(Transform targetPosition, float minDistance)
+    {
 
         float distanceToTarget = Vector3.Distance(transform.position, targetPosition.position);
 
@@ -312,19 +327,23 @@ public class Enemy : Character
         {
 
             Health = Health - damage;
-            CharacterAnimator.CrossFade("Knockback", 0.0f);
 
-            if (attacker.tag.Equals("Player")) {
+            if (!CharacterAnimator.GetCurrentAnimatorStateInfo(0).IsName("Knockback"))
+            {
+                CharacterAnimator.CrossFade("Knockback", 0.0f);
+            }
+
+            //Select the attacker as a new target if he is still alive.
+            if (attacker.tag.Equals("Player") && attacker.GetComponent<Player>().State != CharacterState.dead)
+            {
                 target = attacker;
-            }  
-                          
-            State = CharacterState.knockback;
-            StartCoroutine(StopCharacter(2.0f));
-            
-            //executingCommand = false;
-            //commandDecided = false;
+            }
 
+            State = CharacterState.knockback;
+            
         }
+
+        StartCoroutine(StopCharacter(2.0f));
 
     }
 
@@ -366,11 +385,13 @@ public class Enemy : Character
 
         while (executingCommand == true)
         {
-            if (target != null) {
+
+            if (target != null && target.GetComponent<Player>().State != CharacterState.dead)
+            {
                 MoveTowardsTarget(target.transform);
                 AttackCharacterIfCloseEnough(target.transform, attackDistance);
             }
-
+            
             yield return null;
 
         }
@@ -392,17 +413,16 @@ public class Enemy : Character
         while (executingCommand == true)
         {
 
-            if (target != null)
+            if (target != null && target.GetComponent<Player>().State != CharacterState.dead)
             {
                 AvoidTarget(target.transform, avoidingDistance);
                 //AttackCharacterIfCloseEnough(target.transform, attackDistance);
             }
-            
+
             yield return null;
 
         }
 
-        //SelectTargetRandomly();
         yield return null;
 
     }
@@ -414,13 +434,13 @@ public class Enemy : Character
         Debug.Log("An enemy decided to use taunt command.");
         executingCommand = true;
 
-        if (target != null)
+        if (target != null && target.GetComponent<Player>().State != CharacterState.dead)
         {
             //transform.LookAt(target.transform);
             RotateSmoothlyTowardsTarget(target.transform);
             yield return new WaitForSeconds(1f);
         }
-        
+
         CanMove = false;
         Moving = false;
 

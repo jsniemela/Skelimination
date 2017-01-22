@@ -115,7 +115,7 @@ abstract public class Character : NetworkBehaviour
             if (State != CharacterState.dead && value != state)
             {
                 state = value;
-                Debug.Log("Character's state changed to " + state.ToString());
+                //Debug.Log("Character's state changed to " + state.ToString());
             }
 
         }
