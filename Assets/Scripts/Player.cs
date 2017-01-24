@@ -4,10 +4,11 @@ using CnControls;
 using UnityEngine.Networking;
 
 public class Player : Character  {
+
     private GameObject attackTarget;
     Vector3 movement;
 
-    public void InitializePlayer(int maxHealth, int health, int attackPower, float knockback, CharacterState state, float speed, Animator animator, bool canMove, bool moving)
+    public void InitializePlayer(int maxHealth, int health, int attackPower, float knockback, CharacterState state, float speed, Animator animator, bool canMove, bool moving, GameObject ground)
     { 
         MaxHealth = maxHealth;
         Health = health;
@@ -18,47 +19,57 @@ public class Player : Character  {
         CharacterAnimator = animator;
         CanMove = canMove;
         Moving = moving;
+        imageTarget = ground;
     }
     
 
 
     private void Awake()
     {
-        InitializePlayer(10, 10, 1, 1.0f, CharacterState.idle, 0.2f, GetComponent<Animator>(), true, false);
+        InitializePlayer(10, 10, 1, 1.0f, CharacterState.idle, 0.2f, GetComponent<Animator>(), true, false, GameObject.FindGameObjectWithTag("ImageTarget"));
     }
 
 
 	void Start () {
-        GameObject imagetarget = GameObject.FindGameObjectWithTag("ImageTarget");
-        transform.SetParent(imagetarget.transform, false);
+        //GameObject imagetarget = GameObject.FindGameObjectWithTag("ImageTarget");
+        transform.SetParent(imageTarget.transform, false);
     }
 
 	// Update is called once per frame
 	void Update () {
+
+        
+	}
+
+    private void FixedUpdate()
+    {
+
         if (!isLocalPlayer)
         {
             return;
         }
 
-		if (CanMove == true) 
-		{
+        if (CanMove == true)
+        {
 
             //Lock rotation so that the character doesn't fall over
             transform.rotation = Quaternion.Euler(0, transform.rotation.eulerAngles.y, 0);
 
             Movement();
-		}
+        }
 
         SetMovementAnimation();
 
-        if (CnInputManager.GetButton("Attack")){
+        if (CnInputManager.GetButton("Attack"))
+        {
 
-			CanMove = false;
-			Moving = false;              
+            CanMove = false;
+            Moving = false;
             Attack();
-            
-		}
-	}
+
+        }
+
+    }
 
     private void Movement ()
     {

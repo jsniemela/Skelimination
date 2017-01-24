@@ -46,6 +46,8 @@ public class Enemy : Character
     private void FixedUpdate()
     {
 
+        CheckIfOutOfBounds();
+
         //Stop executing update methods if the enemy is dead.
         if (State == CharacterState.dead)
         {
@@ -70,6 +72,14 @@ public class Enemy : Character
         //Change the animation and state to idle or run according to the situation.
         SetMovementAnimation();
 
+        //Lock rotation so that the character doesn't fall over
+        if (State != CharacterState.dead && State != CharacterState.knockback)
+        {
+           
+            transform.rotation = Quaternion.Euler(0, transform.rotation.eulerAngles.y, 0);
+
+        }
+
     }
 
 
@@ -88,16 +98,16 @@ public class Enemy : Character
         switch (Personality)
         {
             case EnemyPersonality.aggressive:
-                SetStats(2, 2, 2, 1.5f, CharacterState.idle, 4.0f, GetComponent<Animator>(), true, false, 100);
+                SetStats(2, 2, 2, 1.5f, CharacterState.idle, 4.0f, GetComponent<Animator>(), true, false, 100, GameObject.FindGameObjectWithTag("ImageTarget"));
                 break;
             case EnemyPersonality.defensive:
-                SetStats(3, 3, 2, 1.0f, CharacterState.idle, 3.0f, GetComponent<Animator>(), true, false, 100);
+                SetStats(3, 3, 2, 1.0f, CharacterState.idle, 3.0f, GetComponent<Animator>(), true, false, 100, GameObject.FindGameObjectWithTag("ImageTarget"));
                 break;
             case EnemyPersonality.jerk:
-                SetStats(1, 1, 1, 0.8f, CharacterState.idle, 5.0f, GetComponent<Animator>(), true, false, 100);
+                SetStats(1, 1, 1, 0.8f, CharacterState.idle, 5.0f, GetComponent<Animator>(), true, false, 100, GameObject.FindGameObjectWithTag("ImageTarget"));
                 break;
             default:
-                SetStats(2, 2, 2, 1.5f, CharacterState.idle, 3.5f, GetComponent<Animator>(), true, false, 100);
+                SetStats(2, 2, 2, 1.5f, CharacterState.idle, 3.5f, GetComponent<Animator>(), true, false, 100, GameObject.FindGameObjectWithTag("ImageTarget"));
                 break;
         }
 
@@ -107,7 +117,7 @@ public class Enemy : Character
 
     }
 
-    public void SetStats(int maxHealth, int health, int attackPower, float knockback, CharacterState state, float speed, Animator animator, bool canMove, bool moving, int score)
+    public void SetStats(int maxHealth, int health, int attackPower, float knockback, CharacterState state, float speed, Animator animator, bool canMove, bool moving, int score, GameObject ground)
     {
         MaxHealth = maxHealth;
         Health = health;
@@ -119,6 +129,7 @@ public class Enemy : Character
         CanMove = canMove;
         Moving = moving;
         Score = 100;
+        imageTarget = ground;
     }
 
     //Selects the attack target randomly from the GameObjects tagged with "Player". Sets the target to null if there aren't

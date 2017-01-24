@@ -16,7 +16,7 @@ abstract public class Character : NetworkBehaviour
     public Animator CharacterAnimator { get; set; }
     public bool CanMove { get; set; }
     public bool Moving { get; set; }
-
+    public GameObject imageTarget;
 
 
 
@@ -123,10 +123,14 @@ abstract public class Character : NetworkBehaviour
 
 
     //The character 
-    public void OutOfBounds()
+    public void CheckIfOutOfBounds()
     {
-        //Out of bounds notification to GameManager.
-        Die();
+        if (imageTarget != null && gameObject.transform.position.y < imageTarget.transform.position.y - 10f) {
+
+            //Out of bounds notification to GameManager.
+            Die();
+
+        }
     }
 
     
