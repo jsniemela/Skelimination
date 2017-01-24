@@ -27,84 +27,9 @@ public class Enemy : Character
 
 
 
-    public void InitializeEnemy(int maxHealth, int health, int attackPower, float knockback, CharacterState state, float speed, Animator animator, bool canMove, bool moving)
-    {
-        MaxHealth = maxHealth;
-        Health = health;
-        AttackPower = attackPower;
-        Knockback = knockback;
-        State = state;
-        Speed = speed;
-        CharacterAnimator = animator;
-        CanMove = canMove;
-        Moving = moving;
-
-        Score = 100;
-        random = new System.Random();
-
-        SelectTargetRandomly();
-
-        Personality = EnemyPersonality.aggressive;
-
-        commandDecided = false;
-        executingCommand = false;
-
-    }
-
-    //Selects the attack target randomly from the GameObjects tagged with "Player". Sets the target to null if there aren't
-    //any player objects in the scene.
-    private void SelectTargetRandomly()
-    {
-
-        if (GameObject.FindGameObjectsWithTag("Player").Length > 0)
-        {
-
-            GameObject[] targetArray = GameObject.FindGameObjectsWithTag("Player");
-            int randomIndex = random.Next(0, targetArray.Length - 1);
-
-            target = targetArray[randomIndex];
-            RotateSmoothlyTowardsTarget(target.transform);
-            
-            //The selected target is already dead. Switch the target to a living player if possible.
-            if (target.GetComponent<Player>().State == CharacterState.dead && targetArray.Length > 1) {
-
-                foreach (GameObject player in targetArray)
-                {
-
-                    if (player.GetComponent<Player>().State != CharacterState.dead)
-                    {
-                        target = player;
-                        RotateSmoothlyTowardsTarget(target.transform);
-                        return;
-                    }
-                    else {
-                        target = null;
-                    }
-
-                }
-
-            } 
-                  
-        }
-        //No players in the scene.
-        else
-        {
-            target = null;
-            //Debug.Log("An enemy couldn't find a GameObject with a tag Player. Target set to null");
-        }
-
-        //A target was successfully selected.
-        if (target != null)
-        {
-            Debug.Log("An enemy selected a player as its target.");
-        }
-
-    }
-
-
     private void Awake()
     {
-        InitializeEnemy(3, 3, 1, 1.0f, CharacterState.idle, 3.5f, GetComponent<Animator>(), true, false);
+        InitializeEnemy();
     }
 
     void Start()
@@ -144,6 +69,107 @@ public class Enemy : Character
 
         //Change the animation and state to idle or run according to the situation.
         SetMovementAnimation();
+
+    }
+
+
+
+
+    //Selects a personality randomly and initializes the enemy's stats based on it.
+    public void InitializeEnemy()
+    {
+
+        random = new System.Random();
+
+        //Select a personality randomly.
+        Personality = (EnemyPersonality)random.Next(0, (int)Enum.GetNames(typeof(EnemyPersonality)).Length);
+
+        //Initialize stats based on the personality.
+        switch (Personality)
+        {
+            case EnemyPersonality.aggressive:
+                SetStats(2, 2, 2, 1.5f, CharacterState.idle, 4.0f, GetComponent<Animator>(), true, false, 100);
+                break;
+            case EnemyPersonality.defensive:
+                SetStats(3, 3, 2, 1.0f, CharacterState.idle, 3.0f, GetComponent<Animator>(), true, false, 100);
+                break;
+            case EnemyPersonality.jerk:
+                SetStats(1, 1, 1, 0.8f, CharacterState.idle, 5.0f, GetComponent<Animator>(), true, false, 100);
+                break;
+            default:
+                SetStats(2, 2, 2, 1.5f, CharacterState.idle, 3.5f, GetComponent<Animator>(), true, false, 100);
+                break;
+        }
+
+        SelectTargetRandomly();
+        commandDecided = false;
+        executingCommand = false;
+
+    }
+
+    public void SetStats(int maxHealth, int health, int attackPower, float knockback, CharacterState state, float speed, Animator animator, bool canMove, bool moving, int score)
+    {
+        MaxHealth = maxHealth;
+        Health = health;
+        AttackPower = attackPower;
+        Knockback = knockback;
+        State = state;
+        Speed = speed;
+        CharacterAnimator = animator;
+        CanMove = canMove;
+        Moving = moving;
+        Score = 100;
+    }
+
+    //Selects the attack target randomly from the GameObjects tagged with "Player". Sets the target to null if there aren't
+    //any player objects in the scene.
+    private void SelectTargetRandomly()
+    {
+
+        if (GameObject.FindGameObjectsWithTag("Player").Length > 0)
+        {
+
+            GameObject[] targetArray = GameObject.FindGameObjectsWithTag("Player");
+            int randomIndex = random.Next(0, targetArray.Length - 1);
+
+            target = targetArray[randomIndex];
+            RotateSmoothlyTowardsTarget(target.transform);
+
+            //The selected target is already dead. Switch the target to a living player if possible.
+            if (target.GetComponent<Player>().State == CharacterState.dead && targetArray.Length > 1)
+            {
+
+                foreach (GameObject player in targetArray)
+                {
+
+                    if (player.GetComponent<Player>().State != CharacterState.dead)
+                    {
+                        target = player;
+                        RotateSmoothlyTowardsTarget(target.transform);
+                        return;
+                    }
+                    else
+                    {
+                        target = null;
+                    }
+
+                }
+
+            }
+
+        }
+        //No players in the scene.
+        else
+        {
+            target = null;
+            //Debug.Log("An enemy couldn't find a GameObject with a tag Player. Target set to null");
+        }
+
+        //A target was successfully selected.
+        if (target != null)
+        {
+            Debug.Log("An enemy selected a player as its target.");
+        }
 
     }
 
