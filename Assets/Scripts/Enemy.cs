@@ -71,11 +71,14 @@ public class Enemy : Character
                 foreach (GameObject player in targetArray)
                 {
 
-                    if (target.GetComponent<Player>().State != CharacterState.dead)
+                    if (player.GetComponent<Player>().State != CharacterState.dead)
                     {
                         target = player;
                         RotateSmoothlyTowardsTarget(target.transform);
                         return;
+                    }
+                    else {
+                        target = null;
                     }
 
                 }
@@ -83,7 +86,6 @@ public class Enemy : Character
             } 
                   
         }
-
         //No players in the scene.
         else
         {
