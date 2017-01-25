@@ -139,7 +139,7 @@ abstract public class Character : NetworkBehaviour
     public void SetMovementAnimation()
     {
 
-        if (Moving == false && CharacterAnimator.GetCurrentAnimatorStateInfo(0).IsName("Idle"))
+        if (Moving == false && CharacterAnimator.GetCurrentAnimatorStateInfo(0).IsName("Idle") && State != CharacterState.dead)
         {
             //GetComponent<Rigidbody>().velocity = Vector3.zero;
             State = CharacterState.idle;
