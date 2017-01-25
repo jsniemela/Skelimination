@@ -46,18 +46,18 @@ abstract public class Character : NetworkBehaviour
             if (value <= 0)
             {
                 health = 0;
-                Debug.Log("Health set to 0.");
-                Die();
+                //Debug.Log("Health set to 0.");
+                //Die();
             }
             else if (value > MaxHealth)
             {
                 health = MaxHealth;
-                Debug.Log("New health value is greater than maxHealth. Health set to maxHealth.");
+                //Debug.Log("New health value is greater than maxHealth. Health set to maxHealth.");
             }
             else
             {
                 health = value;
-                Debug.Log("Health changed to "+value);
+                //Debug.Log("Health changed to "+value);
             }
         }
     }
@@ -122,13 +122,13 @@ abstract public class Character : NetworkBehaviour
     }
 
 
-    //The character 
-    public void CheckIfOutOfBounds()
+    //Check if the character has fallen below the imageTarget and kill him if he has.
+    public void KillTheCharacterIfOutOfBounds()
     {
-        if (imageTarget != null && gameObject.transform.position.y < imageTarget.transform.position.y - 10f) {
+        if (imageTarget != null && gameObject.transform.position.y < imageTarget.transform.position.y - 5f && State != CharacterState.dead) {
 
             //Out of bounds notification to GameManager.
-            Die();
+            Die(null);
 
         }
     }
@@ -165,7 +165,7 @@ abstract public class Character : NetworkBehaviour
 
     protected virtual void Attack() { }
 
-    protected virtual void Die() { }
+    protected virtual void Die(GameObject killer) { }
 
     
 
@@ -175,11 +175,19 @@ abstract public class Character : NetworkBehaviour
         Moving = false;
         yield return new WaitForSeconds(waitDuration);
         CanMove = true;
+        yield return null;
     }
 
-    protected IEnumerator Wait(float waitDuration)
+    protected IEnumerator WaitAndDestroy(float waitDuration, GameObject objectToBeDestroyed)
     {
         yield return new WaitForSeconds(waitDuration);
+        Destroy(objectToBeDestroyed);
+    }
+
+    protected IEnumerator WaitAndDisable(float waitDuration, GameObject objectToBeDisabled)
+    {
+        yield return new WaitForSeconds(waitDuration);
+        objectToBeDisabled.SetActive(false);
     }
 
 }

@@ -7,8 +7,11 @@ public class Player : Character  {
 
     private GameObject attackTarget;
     Vector3 movement;
+    public int Score { get; set; }
+    public int Kills { get; set; }
 
-    public void InitializePlayer(int maxHealth, int health, int attackPower, float knockback, CharacterState state, float speed, Animator animator, bool canMove, bool moving, GameObject ground)
+    public void InitializePlayer(int maxHealth, int health, int attackPower, float knockback, CharacterState state, 
+        float speed, Animator animator, bool canMove, bool moving, GameObject ground, int score, int kills)
     { 
         MaxHealth = maxHealth;
         Health = health;
@@ -20,13 +23,15 @@ public class Player : Character  {
         CanMove = canMove;
         Moving = moving;
         imageTarget = ground;
+        Score = score;
+        Kills = kills;
     }
     
 
 
     private void Awake()
     {
-        InitializePlayer(10, 10, 1, 1.0f, CharacterState.idle, 0.2f, GetComponent<Animator>(), true, false, GameObject.FindGameObjectWithTag("ImageTarget"));
+        InitializePlayer(10, 10, 1, 1.0f, CharacterState.idle, 0.2f, GetComponent<Animator>(), true, false, GameObject.FindGameObjectWithTag("ImageTarget"), 0, 0);
     }
 
 
@@ -38,8 +43,9 @@ public class Player : Character  {
 	// Update is called once per frame
 	void Update () {
 
-        
-	}
+        KillTheCharacterIfOutOfBounds();
+
+    }
 
     private void FixedUpdate()
     {
@@ -121,16 +127,24 @@ public class Player : Character  {
         {
 
             Health = Health - damage;
-            CharacterAnimator.CrossFade("Knockback", 0.0f);
-            State = CharacterState.knockback;
 
             if (knockback > 0)
             {
                 //Move the character according to the knockback.
             }
 
-            StartCoroutine(StopCharacter(2.0f));
-
+            //Call die if the characte's health goes to zero.
+            if (Health < 1)
+            {
+                Die(null);
+            }
+            else
+            {
+                CharacterAnimator.CrossFade("Knockback", 0.0f);
+                State = CharacterState.knockback;
+                StartCoroutine(StopCharacter(2.0f));
+            }
+            
         }
 
     }
@@ -148,8 +162,9 @@ public class Player : Character  {
         if(collision.transform.tag == "Skeleton")
         {
             if(State == CharacterState.attack) {
-                Debug.Log("Attack collided with a skeleton");
+                //Debug.LogError("Attack collided with a skeleton");
                 attackTarget = collision.gameObject;
+                attackTarget.GetComponent<Enemy>().TakeDamage(AttackPower, Knockback, gameObject);
                 StartCoroutine(attackDelay(0.3f));
             }
         }
@@ -158,7 +173,7 @@ public class Player : Character  {
     protected IEnumerator attackDelay(float waitDuration)
     {
         yield return new WaitForSeconds(waitDuration);
-        Debug.Log("Knocked back");
+        //Debug.LogError("Knocked back");
         attackTarget.transform.forward = -this.transform.forward;
         attackTarget.GetComponent<Enemy>().TakeDamage(0, Knockback, gameObject);
         //Revert collider size back to normal after attack
@@ -168,16 +183,23 @@ public class Player : Character  {
         //attackTarget.GetComponent<Animator>().CrossFade("Idle", 0f);
         //attackTarget.transform.position = attackTarget.GetComponentInChildren<SphereCollider>().transform.position;
         //attackTarget.GetComponent<Rigidbody>().velocity = Vector3.zero;
+        yield return null;
     }
 
-    protected override void Die()
+    protected override void Die(GameObject killer)
     {
-        CharacterAnimator.CrossFade("Death", 0.0f);
-        State = CharacterState.dead;
-        Debug.Log("Player died.");
-        //Notify GameLogic
-        StartCoroutine(Wait(2.0f));
-        //Game over
+
+        if (State != CharacterState.dead) {
+
+            CharacterAnimator.CrossFade("Death", 0.0f);
+            State = CharacterState.dead;
+            Debug.Log("Player died.");
+            StartCoroutine(WaitAndDisable(5.0f, gameObject));
+            //Notify GameLogic
+            //StartCoroutine(Wait(2.0f));
+
+        }
+
     }
 
 

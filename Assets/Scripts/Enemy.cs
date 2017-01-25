@@ -25,6 +25,8 @@ public class Enemy : Character
     //executingCommand is true when the enemy is currently executing a command.
     private bool executingCommand;
 
+    GameObject latestToucher;
+
 
 
     private void Awake()
@@ -40,25 +42,33 @@ public class Enemy : Character
     // Update is called once per frame
     void Update()
     {
-
-    }
-
-    private void FixedUpdate()
-    {
-
-        CheckIfOutOfBounds();
-
+        
         //Stop executing update methods if the enemy is dead.
         if (State == CharacterState.dead)
         {
             return;
         }
 
-        //Select a new target (current Scene's GameObject with a tag "Player") randomly if there is no current target 
-        //or if the target is dead. 
+        //Kill the enemy if he drops below the imageTarget's y position.
+        KillTheCharacterIfOutOfBounds();
+
+        //Changes state and animation to idle and tries to select a new target (current Scene's GameObject with a tag "Player") 
+        //randomly if there is no current target or if the target is dead.
         if (target == null || target.GetComponent<Player>().State == CharacterState.dead)
         {
+
+            StopAllCoroutines();
+            State = CharacterState.idle;
+            Moving = false;
+            CanMove = false;
+
+            if (!CharacterAnimator.GetCurrentAnimatorStateInfo(0).IsName("Idle"))
+            {
+                CharacterAnimator.CrossFade("Idle", 0.0f);
+            }
+
             SelectTargetRandomly();
+
         }
 
         //Decide a new command if the previous one has been executed.
@@ -72,18 +82,18 @@ public class Enemy : Character
         //Change the animation and state to idle or run according to the situation.
         SetMovementAnimation();
 
-        //Lock rotation so that the character doesn't fall over
-        if (State != CharacterState.dead && State != CharacterState.knockback)
-        {
-           
-            transform.rotation = Quaternion.Euler(0, transform.rotation.eulerAngles.y, 0);
+    }
 
+    private void FixedUpdate()
+    {
+
+        //Lock rotation so that the character doesn't fall over.
+        if (State != CharacterState.dead && State != CharacterState.knockback)
+        {          
+            transform.rotation = Quaternion.Euler(0, transform.rotation.eulerAngles.y, 0);
         }
 
     }
-
-
-
 
     //Selects a personality randomly and initializes the enemy's stats based on it.
     public void InitializeEnemy()
@@ -137,51 +147,42 @@ public class Enemy : Character
     private void SelectTargetRandomly()
     {
 
-        if (GameObject.FindGameObjectsWithTag("Player").Length > 0)
+        GameObject[] targetArray = GameObject.FindGameObjectsWithTag("Player");
+
+        //Stop executing this method if there are no player objects in the scene.
+        if (targetArray == null || targetArray.Length <= 0) {
+            return;
+        }
+
+        //Shuffle the targetArray if there are multiple player objects.
+        int n = targetArray.Length;
+        while (n > 1)
+        {
+            int k = random.Next(n--);
+            GameObject temp = targetArray[n];
+            targetArray[n] = targetArray[k];
+            targetArray[k] = temp;
+        }
+
+        //Iterate every randomized array index and try to find a player who is alive.
+        foreach (GameObject player in targetArray)
         {
 
-            GameObject[] targetArray = GameObject.FindGameObjectsWithTag("Player");
-            int randomIndex = random.Next(0, targetArray.Length - 1);
-
-            target = targetArray[randomIndex];
-            RotateSmoothlyTowardsTarget(target.transform);
-
-            //The selected target is already dead. Switch the target to a living player if possible.
-            if (target.GetComponent<Player>().State == CharacterState.dead && targetArray.Length > 1)
+            if (player.GetComponent<Player>().State != CharacterState.dead)
             {
-
-                foreach (GameObject player in targetArray)
-                {
-
-                    if (player.GetComponent<Player>().State != CharacterState.dead)
-                    {
-                        target = player;
-                        RotateSmoothlyTowardsTarget(target.transform);
-                        return;
-                    }
-                    else
-                    {
-                        target = null;
-                    }
-
-                }
-
+                target = player;
+                RotateSmoothlyTowardsTarget(target.transform);
+                //Debug.Log("An enemy selected a player as its target.");
+                return;
+            }
+            else
+            {
+                target = null;
+                //Debug.Log("An enemy couldn't find a valid player target.");
             }
 
         }
-        //No players in the scene.
-        else
-        {
-            target = null;
-            //Debug.Log("An enemy couldn't find a GameObject with a tag Player. Target set to null");
-        }
-
-        //A target was successfully selected.
-        if (target != null)
-        {
-            Debug.Log("An enemy selected a player as its target.");
-        }
-
+     
     }
 
     public EnemyPersonality Personality
@@ -194,7 +195,7 @@ public class Enemy : Character
         set
         {
             personality = value;
-            Debug.Log("Enemy's personality changed to " + personality.ToString() + ".");
+            //Debug.Log("Enemy's personality changed to " + personality.ToString() + ".");
         }
     }
 
@@ -228,7 +229,7 @@ public class Enemy : Character
         else if (Personality == EnemyPersonality.defensive)
         {
 
-            if (command <= 5)
+            if (command <= 4)
             {
                 StartCoroutine(DefendCommand((float)random.Next(4, 8)));
             }
@@ -247,7 +248,7 @@ public class Enemy : Character
         else if (Personality == EnemyPersonality.jerk)
         {
 
-            if (command <= 5)
+            if (command <= 4)
             {
                 StartCoroutine(TauntCommand());
             }
@@ -340,9 +341,14 @@ public class Enemy : Character
 
     private void RotateSmoothlyTowardsTarget(Transform targetPosition)
     {
-        Vector3 targetPoint = targetPosition.position;
-        Quaternion targetRotation = Quaternion.LookRotation(targetPoint - transform.position, Vector3.up);
-        transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, Time.deltaTime * 2.5f);
+        if (targetPosition != null) {
+
+            Vector3 targetPoint = targetPosition.position;
+            Quaternion targetRotation = Quaternion.LookRotation(targetPoint - transform.position, Vector3.up);
+            transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, Time.deltaTime * 2.5f);
+
+        }
+        
     }
 
     //Enemy will attack the target if it is close enough (within the given minDistance).
@@ -367,22 +373,35 @@ public class Enemy : Character
 
             Health = Health - damage;
 
-            if (!CharacterAnimator.GetCurrentAnimatorStateInfo(0).IsName("Knockback"))
+            //Call die if the characte's health goes to zero.
+            if (Health < 1)
             {
-                CharacterAnimator.CrossFade("Knockback", 0.0f);
+                Die(attacker);
+            }
+            else
+            {
+                State = CharacterState.knockback;
+
+                if (!CharacterAnimator.GetCurrentAnimatorStateInfo(0).IsName("Knockback"))
+                {
+                    CharacterAnimator.CrossFade("Knockback", 0.0f);
+                }
+
+                if (knockback > 0)
+                {
+                    //Move the character according to the knockback.
+                }
+
+                //Select the attacker as a new target if he is still alive.
+                if (attacker.tag.Equals("Player") && attacker.GetComponent<Player>().State != CharacterState.dead)
+                {
+                    target = attacker;
+                }
+
+                StartCoroutine(StopCharacter(2.0f));
             }
 
-            //Select the attacker as a new target if he is still alive.
-            if (attacker.tag.Equals("Player") && attacker.GetComponent<Player>().State != CharacterState.dead)
-            {
-                target = attacker;
-            }
-
-            State = CharacterState.knockback;
-            
         }
-
-        StartCoroutine(StopCharacter(2.0f));
 
     }
 
@@ -401,17 +420,61 @@ public class Enemy : Character
         //Debug.Log("Enemy attacked.");
     }
 
-    //Kills the enemy, gives the player points and notifies the GameManager.
-    protected override void Die()
+    //Kills the enemy and gives the points to the killer.
+    protected override void Die(GameObject killer)
     {
-        CharacterAnimator.CrossFade("Death", 0.0f);
-        State = CharacterState.dead;
-        Debug.Log("Enemy died.");
-        //Notify GameLogic, give points to the player
-        //StartCoroutine(Wait(2.0f));
-        Destroy(gameObject);
+
+        if (State != CharacterState.dead) {
+
+            CharacterAnimator.CrossFade("Death", 0.0f);
+            State = CharacterState.dead;
+
+            //If a valid killer object is given (a gameobject with the Player script) 
+            //and the player's state isn't dead.
+            if (killer != null && killer.GetComponent<Player>().State != CharacterState.dead)
+            {
+                //Add this enemy's score and a kill to the player.
+                killer.GetComponent<Player>().Score += Score;
+                killer.GetComponent<Player>().Kills += 1;
+                Debug.Log("A player killed an enemy and received " + Score + " points.");
+            }
+
+            //A valid killer argument wasn't given.
+            else if (killer == null) {
+
+                //Give the latest player who has touched this enemy the points.
+                if (latestToucher != null && latestToucher.GetComponent<Player>().State != CharacterState.dead)
+                {
+                    latestToucher.GetComponent<Player>().Score += Score;
+                    latestToucher.GetComponent<Player>().Kills += 1;
+                    Debug.Log("A player convinced an enemy to kill himself or pushed him off the platform and received " + Score + " points.");
+                }
+                else
+                {
+                    Debug.Log("An enemy killed himself.");
+                }
+
+           }
+
+            //Wait for five seconds before destroying this GameObject.
+            StartCoroutine(WaitAndDestroy(5.0f, gameObject));
+
+        }
+
     }
 
+    //Stores the latest player who has touched this enemy to give him points
+    //if this enemy decides to walk off the cliff.
+    private void OnCollisionEnter(Collision collision)
+    {
+        if (collision.transform.tag == "Player")
+        {
+            if (State != CharacterState.dead)
+            {
+                latestToucher = collision.gameObject;
+            }
+        }
+    }
 
     //Move towards the selected target and try to hit him after you get close enough.
     private IEnumerator AttackCommand(float duration)
@@ -430,12 +493,11 @@ public class Enemy : Character
                 MoveTowardsTarget(target.transform);
                 AttackCharacterIfCloseEnough(target.transform, attackDistance);
             }
-            
+
             yield return null;
 
         }
 
-        //SelectTargetRandomly();
         yield return null;
 
     }
@@ -478,13 +540,10 @@ public class Enemy : Character
             //transform.LookAt(target.transform);
             RotateSmoothlyTowardsTarget(target.transform);
             yield return new WaitForSeconds(1f);
+            CanMove = false;
+            CharacterAnimator.CrossFade("Taunt", 0.0f);
+            yield return new WaitForSeconds(2f);
         }
-
-        CanMove = false;
-        Moving = false;
-
-        CharacterAnimator.CrossFade("Taunt", 0.0f);
-        yield return new WaitForSeconds(1f);
 
         CanMove = true;
         executingCommand = false;
