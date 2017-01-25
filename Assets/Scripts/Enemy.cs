@@ -89,11 +89,8 @@ public class Enemy : Character
 
         //Lock rotation so that the character doesn't fall over.
         if (State != CharacterState.dead && State != CharacterState.knockback)
-        {          
-        //Lock rotation so that the character doesn't fall over
-	}
-        if (State != CharacterState.dead)
         {
+            //Lock rotation so that the character doesn't fall over
             transform.rotation = Quaternion.Euler(0, transform.rotation.eulerAngles.y, 0);
         }
 
@@ -102,9 +99,9 @@ public class Enemy : Character
     //Selects a personality randomly and initializes the enemy's stats based on it.
     public void InitializeEnemy()
     {
-
+        
         random = new System.Random();
-
+        
         //Select a personality randomly.
         Personality = (EnemyPersonality)random.Next(0, (int)Enum.GetNames(typeof(EnemyPersonality)).Length);
 
@@ -382,19 +379,16 @@ public class Enemy : Character
             if (Health < 1)
             {
                 Die(attacker);
-
-            if (!CharacterAnimator.GetCurrentAnimatorStateInfo(0).IsName("Damage"))
-            {
-                CharacterAnimator.CrossFade("Damage", 0.0f);
-
             }
+            //The enemy is still alive. Change to damage animation and stop him for a few seconds.
             else
             {
                 State = CharacterState.knockback;
 
-                if (!CharacterAnimator.GetCurrentAnimatorStateInfo(0).IsName("Knockback"))
+                if (!CharacterAnimator.GetCurrentAnimatorStateInfo(0).IsName("Damage"))
                 {
-                    CharacterAnimator.CrossFade("Knockback", 0.0f);
+                    CharacterAnimator.CrossFade("Damage", 0.0f);
+
                 }
 
                 if (knockback > 0)
@@ -409,11 +403,14 @@ public class Enemy : Character
                 }
 
                 StartCoroutine(StopCharacter(2.0f));
+
             }
 
         }
 
     }
+        
+    
 
     //Lauches the attack animation and stops movement for a while.
     protected override void Attack()
