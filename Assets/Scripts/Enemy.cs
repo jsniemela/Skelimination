@@ -72,7 +72,7 @@ public class Enemy : Character
         }
 
         //Decide a new command if the previous one has been executed.
-        if (commandDecided == false && executingCommand == false && target != null)
+        if (commandDecided == false && executingCommand == false && target != null && State != CharacterState.dead)
         {
             CanMove = true;
             StopAllCoroutines();
@@ -88,7 +88,7 @@ public class Enemy : Character
     {
 
         //Lock rotation so that the character doesn't fall over.
-            transform.rotation = Quaternion.Euler(0, transform.rotation.eulerAngles.y, 0);
+        transform.rotation = Quaternion.Euler(0, transform.rotation.eulerAngles.y, 0);
 
     }
 
@@ -207,11 +207,11 @@ public class Enemy : Character
         if (Personality == EnemyPersonality.aggressive)
         {
 
-            if (command <= 6)
+            if (command <= 7)
             {
                 StartCoroutine(AttackCommand((float)random.Next(5, 10)));
             }
-            else if (command <= 8)
+            else if (command <= 9)
             {
                 StartCoroutine(TauntCommand());
             }
@@ -226,7 +226,7 @@ public class Enemy : Character
         else if (Personality == EnemyPersonality.defensive)
         {
 
-            if (command <= 4)
+            if (command <= 3)
             {
                 StartCoroutine(DefendCommand((float)random.Next(4, 8)));
             }
@@ -245,11 +245,11 @@ public class Enemy : Character
         else if (Personality == EnemyPersonality.jerk)
         {
 
-            if (command <= 4)
+            if (command <= 5)
             {
                 StartCoroutine(TauntCommand());
             }
-            else if (command <= 8)
+            else if (command <= 9)
             {
                 StartCoroutine(AttackCommand((float)random.Next(3, 7)));
             }
@@ -379,8 +379,7 @@ public class Enemy : Character
             //The enemy is still alive. Change to damage animation and stop him for a few seconds.
             else
             {
-                State = CharacterState.knockback;
-
+                
                 if (!CharacterAnimator.GetCurrentAnimatorStateInfo(0).IsName("Damage"))
                 {
                     CharacterAnimator.CrossFade("Damage", 0.0f);
@@ -399,6 +398,8 @@ public class Enemy : Character
                 }
 
                 StartCoroutine(StopCharacter(2.0f));
+
+                State = CharacterState.knockback;
 
             }
 
