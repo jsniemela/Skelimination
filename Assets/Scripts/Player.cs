@@ -161,12 +161,11 @@ public class Player : Character  {
     {
         if(collision.transform.tag == "Skeleton")
         {
-            if(State == CharacterState.attack && collision.gameObject.GetComponent<Enemy>().State != CharacterState.knockback) {
+            if(State == CharacterState.attack && attackTarget == null) {
                 //Debug.LogError("Attack collided with a skeleton");
                 attackTarget = collision.gameObject;
                 //attackTarget.GetComponent<Enemy>().TakeDamage(0, Knockback, gameObject);
                 StartCoroutine(attackDelay(0.3f));
-
             }
         }
     }
@@ -175,7 +174,8 @@ public class Player : Character  {
     {
         gameObject.GetComponent<Rigidbody>().isKinematic = true;
         yield return new WaitForSeconds(waitDuration);
-
+        //loop start here
+        attackTarget.GetComponent<Enemy>().TakeDamage(AttackPower, Knockback, gameObject);
         //Debug.LogError("Knocked back");
         //attackTarget.transform.forward = -this.transform.forward;
 
@@ -184,18 +184,12 @@ public class Player : Character  {
         Debug.Log("Knocked back");
         //attackTarget.transform.forward = -this.transform.forward;
 
-        attackTarget.GetComponent<Enemy>().TakeDamage(AttackPower, Knockback, gameObject);
-        
         attackTarget.GetComponent<Rigidbody>().velocity = transform.forward * Knockback;
+        //loop end here
         yield return new WaitForSeconds(1f);
         gameObject.GetComponent<Rigidbody>().isKinematic = false;
-        //Revert collider size back to normal after attack
-        //GetComponent<BoxCollider>().size = new Vector3(1.4f, 1.4f, 1f);
-        //attackTarget.GetComponent<Animator>().CrossFade("Knockback", 0.0f);
-        //yield return new WaitForSeconds(10f);
-        //attackTarget.GetComponent<Animator>().CrossFade("Idle", 0f);
-        //attackTarget.transform.position = attackTarget.GetComponentInChildren<SphereCollider>().transform.position;
         //attackTarget.GetComponent<Rigidbody>().velocity = Vector3.zero;
+        attackTarget = null; 
         yield return null;
     }
 
@@ -214,6 +208,5 @@ public class Player : Character  {
         }
 
     }
-
 
 }
