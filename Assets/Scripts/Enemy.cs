@@ -90,6 +90,10 @@ public class Enemy : Character
         //Lock rotation so that the character doesn't fall over.
         if (State != CharacterState.dead && State != CharacterState.knockback)
         {          
+        //Lock rotation so that the character doesn't fall over
+	}
+        if (State != CharacterState.dead)
+        {
             transform.rotation = Quaternion.Euler(0, transform.rotation.eulerAngles.y, 0);
         }
 
@@ -327,6 +331,7 @@ public class Enemy : Character
                 Moving = false;
                 State = CharacterState.defend;
                 RotateSmoothlyTowardsTarget(targetPosition);
+                GetComponent<Rigidbody>().velocity = Vector3.zero;
 
                 if (!CharacterAnimator.GetCurrentAnimatorStateInfo(0).IsName("Defend"))
                 {
@@ -377,6 +382,11 @@ public class Enemy : Character
             if (Health < 1)
             {
                 Die(attacker);
+
+            if (!CharacterAnimator.GetCurrentAnimatorStateInfo(0).IsName("Damage"))
+            {
+                CharacterAnimator.CrossFade("Damage", 0.0f);
+
             }
             else
             {
@@ -544,6 +554,13 @@ public class Enemy : Character
             CharacterAnimator.CrossFade("Taunt", 0.0f);
             yield return new WaitForSeconds(2f);
         }
+
+        CanMove = false;
+        Moving = false;
+
+        GetComponent<Rigidbody>().velocity = Vector3.zero;
+        CharacterAnimator.CrossFade("Taunt", 0.0f);
+        yield return new WaitForSeconds(1f);
 
         CanMove = true;
         executingCommand = false;

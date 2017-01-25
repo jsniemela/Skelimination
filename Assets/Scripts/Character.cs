@@ -141,6 +141,7 @@ abstract public class Character : NetworkBehaviour
 
         if (Moving == false && CharacterAnimator.GetCurrentAnimatorStateInfo(0).IsName("Idle"))
         {
+            GetComponent<Rigidbody>().velocity = Vector3.zero;
             State = CharacterState.idle;
             //CharacterAnimator.CrossFade("Idle", 0.0f);
             CanMove = true;
@@ -173,6 +174,7 @@ abstract public class Character : NetworkBehaviour
     {
         CanMove = false;
         Moving = false;
+        //transform.rotation = Quaternion.Euler(transform.rotation.x, transform.rotation.y, transform.rotation.z);
         yield return new WaitForSeconds(waitDuration);
         CanMove = true;
         yield return null;

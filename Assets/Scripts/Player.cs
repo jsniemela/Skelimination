@@ -55,14 +55,14 @@ public class Player : Character  {
             return;
         }
 
+        //Lock rotation so that the character doesn't fall over
+        transform.rotation = Quaternion.Euler(0, transform.rotation.eulerAngles.y, 0);
+
         if (CanMove == true)
         {
-
-            //Lock rotation so that the character doesn't fall over
-            transform.rotation = Quaternion.Euler(0, transform.rotation.eulerAngles.y, 0);
-
             Movement();
         }
+
 
         SetMovementAnimation();
 
@@ -152,7 +152,7 @@ public class Player : Character  {
     protected override void Attack() {
         CharacterAnimator.CrossFade("Attack", 0.0f);
         //Increase collider size during attack
-        GetComponent<BoxCollider>().size = new Vector3(1.8f, 1.4f, 1.8f);
+        //GetComponent<BoxCollider>().size = new Vector3(1.8f, 1.4f, 1.8f);
         State = CharacterState.attack;
         //Debug.Log("Player attacked.");
     }
@@ -166,18 +166,31 @@ public class Player : Character  {
                 attackTarget = collision.gameObject;
                 attackTarget.GetComponent<Enemy>().TakeDamage(AttackPower, Knockback, gameObject);
                 StartCoroutine(attackDelay(0.3f));
+                StartCoroutine(attackDelay(0.2f));
+
             }
         }
     }
 
     protected IEnumerator attackDelay(float waitDuration)
     {
+        gameObject.GetComponent<Rigidbody>().isKinematic = true;
         yield return new WaitForSeconds(waitDuration);
+
         //Debug.LogError("Knocked back");
         attackTarget.transform.forward = -this.transform.forward;
+
+        attackTarget.GetComponent<Rigidbody>().velocity = Vector3.zero;
+        Debug.Log("Knocked back");
+        //attackTarget.transform.forward = -this.transform.forward;
+
         attackTarget.GetComponent<Enemy>().TakeDamage(0, Knockback, gameObject);
+        
+        attackTarget.GetComponent<Rigidbody>().velocity = transform.forward * 10;
+        yield return new WaitForSeconds(1f);
+        gameObject.GetComponent<Rigidbody>().isKinematic = false;
         //Revert collider size back to normal after attack
-        GetComponent<BoxCollider>().size = new Vector3(1.4f, 1.4f, 1f);
+        //GetComponent<BoxCollider>().size = new Vector3(1.4f, 1.4f, 1f);
         //attackTarget.GetComponent<Animator>().CrossFade("Knockback", 0.0f);
         //yield return new WaitForSeconds(10f);
         //attackTarget.GetComponent<Animator>().CrossFade("Idle", 0f);
