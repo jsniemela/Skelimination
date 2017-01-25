@@ -31,7 +31,7 @@ public class Player : Character  {
 
     private void Awake()
     {
-        InitializePlayer(10, 10, 1, 1.0f, CharacterState.idle, 0.2f, GetComponent<Animator>(), true, false, GameObject.FindGameObjectWithTag("ImageTarget"), 0, 0);
+        InitializePlayer(10, 10, 1, 13.0f, CharacterState.idle, 0.2f, GetComponent<Animator>(), true, false, GameObject.FindGameObjectWithTag("ImageTarget"), 0, 0);
     }
 
 
@@ -161,12 +161,11 @@ public class Player : Character  {
     {
         if(collision.transform.tag == "Skeleton")
         {
-            if(State == CharacterState.attack) {
+            if(State == CharacterState.attack && collision.gameObject.GetComponent<Enemy>().State != CharacterState.knockback) {
                 //Debug.LogError("Attack collided with a skeleton");
                 attackTarget = collision.gameObject;
-                attackTarget.GetComponent<Enemy>().TakeDamage(AttackPower, Knockback, gameObject);
+                //attackTarget.GetComponent<Enemy>().TakeDamage(0, Knockback, gameObject);
                 StartCoroutine(attackDelay(0.3f));
-                StartCoroutine(attackDelay(0.2f));
 
             }
         }
@@ -178,15 +177,16 @@ public class Player : Character  {
         yield return new WaitForSeconds(waitDuration);
 
         //Debug.LogError("Knocked back");
-        attackTarget.transform.forward = -this.transform.forward;
+        //attackTarget.transform.forward = -this.transform.forward;
 
+        //Reset velocity of skeleton before knockback so it doesn't affect the distance
         attackTarget.GetComponent<Rigidbody>().velocity = Vector3.zero;
         Debug.Log("Knocked back");
         //attackTarget.transform.forward = -this.transform.forward;
 
-        attackTarget.GetComponent<Enemy>().TakeDamage(0, Knockback, gameObject);
+        attackTarget.GetComponent<Enemy>().TakeDamage(AttackPower, Knockback, gameObject);
         
-        attackTarget.GetComponent<Rigidbody>().velocity = transform.forward * 10;
+        attackTarget.GetComponent<Rigidbody>().velocity = transform.forward * Knockback;
         yield return new WaitForSeconds(1f);
         gameObject.GetComponent<Rigidbody>().isKinematic = false;
         //Revert collider size back to normal after attack

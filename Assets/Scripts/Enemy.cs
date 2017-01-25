@@ -88,11 +88,7 @@ public class Enemy : Character
     {
 
         //Lock rotation so that the character doesn't fall over.
-        if (State != CharacterState.dead && State != CharacterState.knockback)
-        {
-            //Lock rotation so that the character doesn't fall over
             transform.rotation = Quaternion.Euler(0, transform.rotation.eulerAngles.y, 0);
-        }
 
     }
 
@@ -328,7 +324,7 @@ public class Enemy : Character
                 Moving = false;
                 State = CharacterState.defend;
                 RotateSmoothlyTowardsTarget(targetPosition);
-                GetComponent<Rigidbody>().velocity = Vector3.zero;
+                //GetComponent<Rigidbody>().velocity = Vector3.zero;
 
                 if (!CharacterAnimator.GetCurrentAnimatorStateInfo(0).IsName("Defend"))
                 {

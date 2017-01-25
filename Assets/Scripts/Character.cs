@@ -141,7 +141,7 @@ abstract public class Character : NetworkBehaviour
 
         if (Moving == false && CharacterAnimator.GetCurrentAnimatorStateInfo(0).IsName("Idle"))
         {
-            GetComponent<Rigidbody>().velocity = Vector3.zero;
+            //GetComponent<Rigidbody>().velocity = Vector3.zero;
             State = CharacterState.idle;
             //CharacterAnimator.CrossFade("Idle", 0.0f);
             CanMove = true;
