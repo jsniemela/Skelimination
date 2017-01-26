@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using Vuforia;
 
 public class GameManager : MonoBehaviour
 {
@@ -46,6 +47,17 @@ public class GameManager : MonoBehaviour
 
 		GameObject imageTarget = GameObject.FindGameObjectWithTag("ImageTarget");
 		Transform levelTransform = imageTarget.transform.FindChild("Level") ?? imageTarget.transform;
+
+		// if multiple ARCameras are present, do not add the one from GameplayScene
+		VuforiaBehaviour[] vuforiaBehaviours = GetComponents<VuforiaBehaviour>();
+		if (vuforiaBehaviours.Length > 1)
+		{
+			for (int i = 0; i < vuforiaBehaviours.Length; i++)
+			{
+				if (vuforiaBehaviours[i].gameObject.scene.name == "GameplayScene")
+					Destroy(vuforiaBehaviours[i].gameObject);
+			}
+		}
 
 		// parent all level related objects under ImageTarget.Level
 		GameObject attached = this.transform.gameObject;
