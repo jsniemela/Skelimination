@@ -59,6 +59,10 @@ public class Player : Character  {
             return;
         }
 
+        if (State == CharacterState.dead) {
+            return;
+        }
+
         //Lock rotation so that the character doesn't fall over
         transform.rotation = Quaternion.Euler(0, transform.rotation.eulerAngles.y, 0);
 
@@ -86,7 +90,6 @@ public class Player : Character  {
         float verticalMovement = CnInputManager.GetAxis("Vertical");
 
         //apply input to movement direction
-
         Vector3 movement = new Vector3(horizontalMovement, 0.0f, verticalMovement);
         movement = new Vector3(horizontalMovement, 0.0f, verticalMovement);
 
@@ -97,6 +100,7 @@ public class Player : Character  {
 
         //apply speed to movement
         movement *= Speed;
+
         //change moving state to true when moving
         Moving = horizontalMovement != 0 || verticalMovement != 0;
 
@@ -129,10 +133,11 @@ public class Player : Character  {
         {
 
             Health = Health - damage;
+            //Debug.LogError("Damage dealt to player. His current HP is " + Health+".");
 
             if (knockback > 0)
             {
-                //Move the character according to the knockback.
+                
             }
 
             //Call die if the characte's health goes to zero.
@@ -142,9 +147,9 @@ public class Player : Character  {
             }
             else
             {
-                CharacterAnimator.CrossFade("Knockback", 0.0f);
+                CharacterAnimator.CrossFade("Knockback", 0.0f);              
+                StartCoroutine(StopCharacter(5.0f));
                 State = CharacterState.knockback;
-                StartCoroutine(StopCharacter(2.0f));
             }
             
         }
@@ -165,7 +170,8 @@ public class Player : Character  {
 
     void OnTriggerEnter(Collider collision)
     {
-        if (collision.gameObject.tag == "Skeleton" || collision.gameObject.tag == "Player"){
+        if (collision.gameObject.tag == "Skeleton" || collision.gameObject.tag == "Player")
+        {
 
             if (!collisionGameObjects.Contains(collision.gameObject))
             {
@@ -175,8 +181,8 @@ public class Player : Character  {
             }
 
         }
-        
-        
+
+
     }
 
     void OnTriggerExit(Collider collision)
@@ -194,48 +200,6 @@ public class Player : Character  {
         }
     }
 
-    protected IEnumerator attackDelay(float waitDuration)
-    {
-
-        yield return new WaitForSeconds(waitDuration);
-
-        //If there is at least one gameobject in the collisionGameObjects, iterate them, call
-        //their TakeDamage and move them accordingly. 
-        if (collisionGameObjects.Count > 0) {
-
-            foreach (GameObject g in collisionGameObjects)
-            {
-                try
-                {
-                    if (g.gameObject.tag == "Skeleton")
-                    {           
-                        g.GetComponent<Enemy>().TakeDamage(AttackPower, Knockback, gameObject);
-                        g.GetComponent<Rigidbody>().velocity = Vector3.zero;
-                        g.GetComponent<Rigidbody>().velocity = transform.forward * Knockback;
-                        //Debug.LogError("Attack collided with GameObject " +i + ".");
-                    }
-                    else if (g.gameObject.tag == "Player")
-                    {
-                        g.GetComponent<Player>().TakeDamage(AttackPower, Knockback, gameObject);
-                        g.GetComponent<Rigidbody>().velocity = Vector3.zero;
-                        g.GetComponent<Rigidbody>().velocity = transform.forward * Knockback;
-                        //Debug.LogError("Attack collided with GameObject " + i + ".");
-                    }
-
-                }
-                catch (MissingReferenceException e)
-                {
-                    
-                }
-            }
-
-        }
-
-        yield return new WaitForSeconds(1f);
-        yield return null;
-
-    }
-
     protected override void Die(GameObject killer)
     {
 
@@ -243,6 +207,8 @@ public class Player : Character  {
 
             CharacterAnimator.CrossFade("Death", 0.0f);
             State = CharacterState.dead;
+            CanMove = false;
+            Moving = false;
             Debug.Log("Player died.");
             StartCoroutine(WaitAndDisable(5.0f, gameObject));
             //Notify GameLogic

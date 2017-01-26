@@ -8,32 +8,17 @@ public enum CharacterState { idle, moving, knockback, taunt, frozen, dead, attac
 abstract public class Character : NetworkBehaviour
 {
 
-    public int maxHealth;
+    public int MaxHealth { get; set; }
     private int health;
-    private int attackPower; 
-    private float knockback;
+    public int AttackPower { get; set; }
+    public float Knockback { get; set; }
     private CharacterState state;
-    private float speed;
+    public float Speed { get; set; }
     public Animator CharacterAnimator { get; set; }
     public bool CanMove { get; set; }
     public bool Moving { get; set; }
     public GameObject imageTarget;
     public List<GameObject> collisionGameObjects;
-
-    
-
-    public int MaxHealth
-    {
-        get
-        {
-            return maxHealth;
-        }
-
-        set
-        {
-            maxHealth = value;
-        }
-    }
 
     public int Health
     {
@@ -63,45 +48,6 @@ abstract public class Character : NetworkBehaviour
         }
     }
 
-    public int AttackPower
-    {
-        get
-        {
-            return attackPower;
-        }
-
-        set
-        {
-            attackPower = value;
-        }
-    }
-
-    public float Knockback
-    {
-        get
-        {
-            return knockback;
-        }
-
-        set
-        {
-            knockback = value;
-        }
-    }
-
-    public float Speed
-    {
-        get
-        {
-            return speed;
-        }
-
-        set
-        {
-            speed = value;
-        }
-    }
-
     public CharacterState State
     {
         get
@@ -122,19 +68,16 @@ abstract public class Character : NetworkBehaviour
         }
     }
 
-
     //Check if the character has fallen below the imageTarget and kill him if he has.
     public void KillTheCharacterIfOutOfBounds()
     {
         if (imageTarget != null && gameObject.transform.position.y < imageTarget.transform.position.y - 5f && State != CharacterState.dead) {
 
-            //Out of bounds notification to GameManager.
             Die(null);
 
         }
     }
-
-    
+  
     //Changes character's state to idle if the currently playing animation is  called "Idle". Also allows the 
     //character to move again by setting CanMove to true. All the animator's animations except "Death" crossfade to "Idle" automatically.   
     public void SetMovementAnimation()
@@ -142,10 +85,10 @@ abstract public class Character : NetworkBehaviour
 
         if (Moving == false && CharacterAnimator.GetCurrentAnimatorStateInfo(0).IsName("Idle") && State != CharacterState.dead)
         {
-            //GetComponent<Rigidbody>().velocity = Vector3.zero;
-            State = CharacterState.idle;
-            //CharacterAnimator.CrossFade("Idle", 0.0f);
+                        
+            State = CharacterState.idle;          
             CanMove = true;
+
         }
         else if (Moving == true && CanMove == true && State != CharacterState.knockback && State != CharacterState.dead) {
 
@@ -161,7 +104,6 @@ abstract public class Character : NetworkBehaviour
             }
         }
     }
-    
 
     public virtual void TakeDamage(int damage, float knockback, GameObject attacker) { }
 
@@ -169,13 +111,10 @@ abstract public class Character : NetworkBehaviour
 
     protected virtual void Die(GameObject killer) { }
 
-    
-
     protected IEnumerator StopCharacter(float waitDuration)
     {
         CanMove = false;
         Moving = false;
-        //transform.rotation = Quaternion.Euler(transform.rotation.x, transform.rotation.y, transform.rotation.z);
         yield return new WaitForSeconds(waitDuration);
         CanMove = true;
         yield return null;
@@ -191,6 +130,51 @@ abstract public class Character : NetworkBehaviour
     {
         yield return new WaitForSeconds(waitDuration);
         objectToBeDisabled.SetActive(false);
+    }
+
+    //Waits for a given time (so that the attack animation can progress to the correct position) and
+    //calls TakeDamage() method of every Enemy or Player who are currently stored in the collisionGameObjects list.
+    protected IEnumerator attackDelay(float waitDuration)
+    {
+
+        yield return new WaitForSeconds(waitDuration);
+
+        //If there is at least one gameobject in the collisionGameObjects, iterate them, call
+        //their TakeDamage and move them accordingly. 
+        if (collisionGameObjects.Count > 0)
+        {
+
+            foreach (GameObject g in collisionGameObjects)
+            {
+                try
+                {
+                    if (g.gameObject.tag == "Skeleton" && g.gameObject.GetComponent<Enemy>().State != CharacterState.dead)
+                    {
+                        g.GetComponent<Enemy>().TakeDamage(AttackPower, Knockback, gameObject);
+                        g.GetComponent<Rigidbody>().velocity = Vector3.zero;
+                        g.GetComponent<Rigidbody>().velocity = transform.forward * Knockback;
+                        //Debug.LogError("Attack collided with GameObject " +i + ".");
+                    }
+                    else if (g.gameObject.tag == "Player" && g.gameObject.GetComponent<Player>().State != CharacterState.dead)
+                    {
+                        g.GetComponent<Player>().TakeDamage(AttackPower, Knockback, gameObject);
+                        g.GetComponent<Rigidbody>().velocity = Vector3.zero;
+                        g.GetComponent<Rigidbody>().velocity = transform.forward * Knockback;
+                        //Debug.LogError("Attack collided with GameObject " + i + ".");
+                    }
+
+                }
+                catch (MissingReferenceException e)
+                {
+
+                }
+            }
+
+        }
+
+        yield return new WaitForSeconds(1f);
+        yield return null;
+
     }
 
 }

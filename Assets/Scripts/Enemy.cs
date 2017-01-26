@@ -17,7 +17,7 @@ public class Enemy : Character
     public int Score { get; set; }
 
     //random is used for calculating random numbers that are used in AI randomizations and target selection.
-    System.Random random;
+    System.Random random = new System.Random();
 
     //The enemy selects a new command based on his personality when commandDecided is false.
     private bool commandDecided;
@@ -26,8 +26,6 @@ public class Enemy : Character
     private bool executingCommand;
 
     GameObject latestToucher;
-
-
 
     private void Awake()
     {
@@ -96,7 +94,7 @@ public class Enemy : Character
     public void InitializeEnemy()
     {
         
-        random = new System.Random();
+        
         collisionGameObjects = new List<GameObject>();
 
         //Select a personality randomly.
@@ -106,16 +104,16 @@ public class Enemy : Character
         switch (Personality)
         {
             case EnemyPersonality.aggressive:
-                SetStats(2, 2, 2, 1.5f, CharacterState.idle, 4.0f, GetComponent<Animator>(), true, false, 100, GameObject.FindGameObjectWithTag("ImageTarget"));
+                SetStats(3, 3, 2, 6.0f, CharacterState.idle, 4.0f, GetComponent<Animator>(), true, false, 100, GameObject.FindGameObjectWithTag("ImageTarget"));
                 break;
             case EnemyPersonality.defensive:
-                SetStats(3, 3, 2, 1.0f, CharacterState.idle, 3.0f, GetComponent<Animator>(), true, false, 100, GameObject.FindGameObjectWithTag("ImageTarget"));
+                SetStats(4, 4, 1, 6.0f, CharacterState.idle, 3.0f, GetComponent<Animator>(), true, false, 100, GameObject.FindGameObjectWithTag("ImageTarget"));
                 break;
             case EnemyPersonality.jerk:
-                SetStats(1, 1, 1, 0.8f, CharacterState.idle, 5.0f, GetComponent<Animator>(), true, false, 100, GameObject.FindGameObjectWithTag("ImageTarget"));
+                SetStats(2, 2, 2, 6.0f, CharacterState.idle, 5.0f, GetComponent<Animator>(), true, false, 100, GameObject.FindGameObjectWithTag("ImageTarget"));
                 break;
             default:
-                SetStats(2, 2, 2, 1.5f, CharacterState.idle, 3.5f, GetComponent<Animator>(), true, false, 100, GameObject.FindGameObjectWithTag("ImageTarget"));
+                SetStats(2, 2, 2, 6.0f, CharacterState.idle, 3.5f, GetComponent<Animator>(), true, false, 100, GameObject.FindGameObjectWithTag("ImageTarget"));
                 break;
         }
 
@@ -212,7 +210,7 @@ public class Enemy : Character
             {
                 StartCoroutine(AttackCommand((float)random.Next(5, 10)));
             }
-            else if (command <= 9)
+            else if (command > 7 && command <= 9)
             {
                 StartCoroutine(TauntCommand());
             }
@@ -231,7 +229,7 @@ public class Enemy : Character
             {
                 StartCoroutine(DefendCommand((float)random.Next(4, 8)));
             }
-            else if (command <= 8)
+            else if (command > 3 && command <= 8)
             {
                 StartCoroutine(AttackCommand((float)random.Next(5, 10)));
             }
@@ -250,7 +248,7 @@ public class Enemy : Character
             {
                 StartCoroutine(TauntCommand());
             }
-            else if (command <= 9)
+            else if (command > 5 && command <= 9)
             {
                 StartCoroutine(AttackCommand((float)random.Next(3, 7)));
             }
@@ -371,7 +369,8 @@ public class Enemy : Character
         {
 
             Health = Health - damage;
-
+            //Debug.LogError("Damage dealt to enemy. His current HP is " + Health + ".");
+          
             //Call die if the characte's health goes to zero.
             if (Health < 1)
             {
@@ -385,11 +384,6 @@ public class Enemy : Character
                 {
                     CharacterAnimator.CrossFade("Damage", 0.0f);
 
-                }
-
-                if (knockback > 0)
-                {
-                    //Move the character according to the knockback.
                 }
 
                 //Select the attacker as a new target if he is still alive.
@@ -408,8 +402,6 @@ public class Enemy : Character
 
     }
         
-    
-
     //Lauches the attack animation and stops movement for a while.
     protected override void Attack()
     {
@@ -419,6 +411,7 @@ public class Enemy : Character
         {
             CharacterAnimator.CrossFade("Attack", 0.0f);
             State = CharacterState.attack;
+            StartCoroutine(attackDelay(1.0f));
         }
 
         //Debug.Log("Enemy attacked.");
@@ -480,19 +473,50 @@ public class Enemy : Character
         }
     }
 
+    void OnTriggerEnter(Collider collision)
+    {
+        if (collision.gameObject.tag == "Player")
+        {
+
+            if (!collisionGameObjects.Contains(collision.gameObject))
+            {
+                collisionGameObjects.Add(collision.gameObject);
+                //Debug.LogError("Gameobject entered collision.");
+                //Debug.LogError("List size is now " + collisionGameObjects.Count +".");
+            }
+
+        }
+
+
+    }
+
+    void OnTriggerExit(Collider collision)
+    {
+        if (collision.gameObject.tag == "Player")
+        {
+
+            if (collisionGameObjects.Contains(collision.gameObject))
+            {
+                collisionGameObjects.Remove(collision.gameObject);
+                //Debug.LogError("Gameobject exited collision.");
+                //Debug.LogError("List size is now " + collisionGameObjects.Count + ".");
+            }
+
+        }
+    }
+
     //Move towards the selected target and try to hit him after you get close enough.
     private IEnumerator AttackCommand(float duration)
     {
 
-        Debug.Log("An enemy decided to use attack command for " + duration + " seconds.");
+        //Debug.Log("An enemy decided to use attack command for " + duration + " seconds.");
         StartCoroutine(CommandDuration(duration));
         float attackDistance = (float)random.Next(3, 5);
-        //select the target
 
         while (executingCommand == true)
         {
 
-            if (target != null && target.GetComponent<Player>().State != CharacterState.dead)
+            if (target != null && target.GetComponent<Player>().State != CharacterState.dead && State != CharacterState.dead)
             {
                 MoveTowardsTarget(target.transform);
                 AttackCharacterIfCloseEnough(target.transform, attackDistance);
@@ -510,15 +534,15 @@ public class Enemy : Character
     private IEnumerator DefendCommand(float duration)
     {
 
-        Debug.Log("An enemy decided to use defend command for " + duration + " seconds.");
+        //Debug.Log("An enemy decided to use defend command for " + duration + " seconds.");
         StartCoroutine(CommandDuration(duration));
+
         float avoidingDistance = (float)random.Next(7, 10);
-        //float attackDistance = (float)random.Next(1, 3);
 
         while (executingCommand == true)
         {
 
-            if (target != null && target.GetComponent<Player>().State != CharacterState.dead)
+            if (target != null && target.GetComponent<Player>().State != CharacterState.dead && State != CharacterState.dead)
             {
                 AvoidTarget(target.transform, avoidingDistance);
                 //AttackCharacterIfCloseEnough(target.transform, attackDistance);
@@ -536,27 +560,27 @@ public class Enemy : Character
     private IEnumerator TauntCommand()
     {
 
-        Debug.Log("An enemy decided to use taunt command.");
+        //Debug.Log("An enemy decided to use taunt command.");
         executingCommand = true;
 
-        if (target != null && target.GetComponent<Player>().State != CharacterState.dead)
+        if (target != null && target.GetComponent<Player>().State != CharacterState.dead && State != CharacterState.dead)
         {
-            //transform.LookAt(target.transform);
-            RotateSmoothlyTowardsTarget(target.transform);
-            yield return new WaitForSeconds(1f);
             CanMove = false;
-            CharacterAnimator.CrossFade("Taunt", 0.0f);
+            Moving = false;
+            RotateSmoothlyTowardsTarget(target.transform);
+
             yield return new WaitForSeconds(2f);
+
+            if (!CharacterAnimator.GetCurrentAnimatorStateInfo(0).IsName("Taunt")) {
+                CharacterAnimator.CrossFade("Taunt", 0.0f);
+            }
+            
+            yield return new WaitForSeconds(3f);
+
+            CanMove = true;
+
         }
-
-        CanMove = false;
-        Moving = false;
-
-        GetComponent<Rigidbody>().velocity = Vector3.zero;
-        CharacterAnimator.CrossFade("Taunt", 0.0f);
-        yield return new WaitForSeconds(1f);
-
-        CanMove = true;
+     
         executingCommand = false;
         commandDecided = false;
 
