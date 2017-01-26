@@ -163,30 +163,7 @@ public class Player : Character  {
         }
     }
 
-    /*
-    private void OnCollisionStay(Collision collision)
-    {
-
-        if(State == CharacterState.attack && (collision.gameObject.tag == "Skeleton" || collision.gameObject.tag == "Player"))
-        {
-
-
-
-            if (!collisionGameObjects.Contains(collision.gameObject)) {
-                collisionGameObjects.Add(collision.gameObject);
-                //collisionGameObjects.GetHashCode();
-            }
-         
-            if (collisionGameObjects.Count > 0) {
-                StartCoroutine(attackDelay(0.3f));
-            }
-                
-        }
-    }
-    */
-
-
-    void OnCollisionEnter(Collision collision)
+    void OnTriggerEnter(Collider collision)
     {
         if (collision.gameObject.tag == "Skeleton" || collision.gameObject.tag == "Player"){
 
@@ -194,7 +171,7 @@ public class Player : Character  {
             {
                 collisionGameObjects.Add(collision.gameObject);
                 //Debug.LogError("Gameobject entered collision.");
-                Debug.LogError("List size is now " + collisionGameObjects.Count +".");
+                //Debug.LogError("List size is now " + collisionGameObjects.Count +".");
             }
 
         }
@@ -202,7 +179,7 @@ public class Player : Character  {
         
     }
 
-    void OnCollisionExit(Collision collision)
+    void OnTriggerExit(Collider collision)
     {
         if (collision.gameObject.tag == "Skeleton" || collision.gameObject.tag == "Player")
         {
@@ -211,36 +188,16 @@ public class Player : Character  {
             {
                 collisionGameObjects.Remove(collision.gameObject);
                 //Debug.LogError("Gameobject exited collision.");
-                Debug.LogError("List size is now " + collisionGameObjects.Count + ".");
+                //Debug.LogError("List size is now " + collisionGameObjects.Count + ".");
             }
 
         }
     }
-
-    /*
-    private void OnCollisionStay(Collision collision)
-    {
-
-        if (collision.gameObject.tag == "Skeleton" || collision.gameObject.tag == "Player")
-        {
-
-            if (!collisionGameObjects.Contains(collision.gameObject))
-            {
-                collisionGameObjects.Add(collision.gameObject);
-                Debug.LogError("List size is now " + collisionGameObjects.Count + ".");
-            }
-
-        }
-    }
-    */
 
     protected IEnumerator attackDelay(float waitDuration)
     {
 
-        //gameObject.GetComponent<Rigidbody>().isKinematic = true;
         yield return new WaitForSeconds(waitDuration);
-
-        //Debug.LogError("List size is " +collisionGameObjects.Count +".");
 
         //If there is at least one gameobject in the collisionGameObjects, iterate them, call
         //their TakeDamage and move them accordingly. 
@@ -268,22 +225,15 @@ public class Player : Character  {
                 }
                 catch (MissingReferenceException e)
                 {
-                    //Debug.LogError("");
+                    
                 }
             }
 
         }
 
         yield return new WaitForSeconds(1f);
-
-
-        //gameObject.GetComponent<Rigidbody>().isKinematic = false;
-        //attackTarget.GetComponent<Rigidbody>().velocity = Vector3.zero;
-        //attackTarget = null;
-
-        //collisionGameObjects.Clear();
-
         yield return null;
+
     }
 
     protected override void Die(GameObject killer)
@@ -296,7 +246,6 @@ public class Player : Character  {
             Debug.Log("Player died.");
             StartCoroutine(WaitAndDisable(5.0f, gameObject));
             //Notify GameLogic
-            //StartCoroutine(Wait(2.0f));
 
         }
 
