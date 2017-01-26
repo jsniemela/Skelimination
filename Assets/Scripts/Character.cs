@@ -1,6 +1,7 @@
 ﻿using UnityEngine;
 using System.Collections;
 using UnityEngine.Networking;
+using System.Collections.Generic;
 
 public enum CharacterState { idle, moving, knockback, taunt, frozen, dead, attack, defend };
 
@@ -17,9 +18,9 @@ abstract public class Character : NetworkBehaviour
     public bool CanMove { get; set; }
     public bool Moving { get; set; }
     public GameObject imageTarget;
+    public List<GameObject> collisionGameObjects;
 
-
-
+    
 
     public int MaxHealth
     {

@@ -1,7 +1,7 @@
 ﻿using UnityEngine;
 using System.Collections;
 using System;
-
+using System.Collections.Generic;
 
 public class Enemy : Character
 {
@@ -97,7 +97,8 @@ public class Enemy : Character
     {
         
         random = new System.Random();
-        
+        collisionGameObjects = new List<GameObject>();
+
         //Select a personality randomly.
         Personality = (EnemyPersonality)random.Next(0, (int)Enum.GetNames(typeof(EnemyPersonality)).Length);
 
@@ -414,11 +415,10 @@ public class Enemy : Character
     {
         StartCoroutine(StopCharacter(3.0f));
 
-        State = CharacterState.attack;
-
         if (!CharacterAnimator.GetCurrentAnimatorStateInfo(0).IsName("Attack"))
         {
             CharacterAnimator.CrossFade("Attack", 0.0f);
+            State = CharacterState.attack;
         }
 
         //Debug.Log("Enemy attacked.");

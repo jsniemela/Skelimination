@@ -2,6 +2,8 @@
 using System.Collections;
 using CnControls;
 using UnityEngine.Networking;
+using System.Collections.Generic;
+using System;
 
 public class Player : Character  {
 
@@ -9,6 +11,7 @@ public class Player : Character  {
     Vector3 movement;
     public int Score { get; set; }
     public int Kills { get; set; }
+    
 
     public void InitializePlayer(int maxHealth, int health, int attackPower, float knockback, CharacterState state, 
         float speed, Animator animator, bool canMove, bool moving, GameObject ground, int score, int kills)
@@ -25,13 +28,14 @@ public class Player : Character  {
         imageTarget = ground;
         Score = score;
         Kills = kills;
+        collisionGameObjects = new List<GameObject>();
     }
     
 
 
     private void Awake()
     {
-        InitializePlayer(10, 10, 1, 13.0f, CharacterState.idle, 0.2f, GetComponent<Animator>(), true, false, GameObject.FindGameObjectWithTag("ImageTarget"), 0, 0);
+        InitializePlayer(10, 10, 1, 14.0f, CharacterState.idle, 0.2f, GetComponent<Animator>(), true, false, GameObject.FindGameObjectWithTag("ImageTarget"), 0, 0);
     }
 
 
@@ -68,11 +72,9 @@ public class Player : Character  {
 
         if (CnInputManager.GetButton("Attack"))
         {
-
-            CanMove = false;
-            Moving = false;
+                 
             Attack();
-
+            
         }
 
     }
@@ -150,46 +152,137 @@ public class Player : Character  {
     }
 
     protected override void Attack() {
-        CharacterAnimator.CrossFade("Attack", 0.0f);
-        //Increase collider size during attack
-        //GetComponent<BoxCollider>().size = new Vector3(1.8f, 1.4f, 1.8f);
-        State = CharacterState.attack;
-        //Debug.Log("Player attacked.");
-    }
 
-    private void OnCollisionStay(Collision collision)
-    {
-        if(collision.transform.tag == "Skeleton")
+        if (!CharacterAnimator.GetCurrentAnimatorStateInfo(0).IsName("Attack") && State != CharacterState.attack && State != CharacterState.knockback && State != CharacterState.dead)
         {
-            if(State == CharacterState.attack && attackTarget == null) {
-                //Debug.LogError("Attack collided with a skeleton");
-                attackTarget = collision.gameObject;
-                //attackTarget.GetComponent<Enemy>().TakeDamage(0, Knockback, gameObject);
-                StartCoroutine(attackDelay(0.3f));
-            }
+            CanMove = false;
+            Moving = false;           
+            State = CharacterState.attack;
+            StartCoroutine(attackDelay(0.2f));
+            CharacterAnimator.CrossFade("Attack", 0.0f);
         }
     }
 
+    /*
+    private void OnCollisionStay(Collision collision)
+    {
+
+        if(State == CharacterState.attack && (collision.gameObject.tag == "Skeleton" || collision.gameObject.tag == "Player"))
+        {
+
+
+
+            if (!collisionGameObjects.Contains(collision.gameObject)) {
+                collisionGameObjects.Add(collision.gameObject);
+                //collisionGameObjects.GetHashCode();
+            }
+         
+            if (collisionGameObjects.Count > 0) {
+                StartCoroutine(attackDelay(0.3f));
+            }
+                
+        }
+    }
+    */
+
+
+    void OnCollisionEnter(Collision collision)
+    {
+        if (collision.gameObject.tag == "Skeleton" || collision.gameObject.tag == "Player"){
+
+            if (!collisionGameObjects.Contains(collision.gameObject))
+            {
+                collisionGameObjects.Add(collision.gameObject);
+                //Debug.LogError("Gameobject entered collision.");
+                Debug.LogError("List size is now " + collisionGameObjects.Count +".");
+            }
+
+        }
+        
+        
+    }
+
+    void OnCollisionExit(Collision collision)
+    {
+        if (collision.gameObject.tag == "Skeleton" || collision.gameObject.tag == "Player")
+        {
+
+            if (collisionGameObjects.Contains(collision.gameObject))
+            {
+                collisionGameObjects.Remove(collision.gameObject);
+                //Debug.LogError("Gameobject exited collision.");
+                Debug.LogError("List size is now " + collisionGameObjects.Count + ".");
+            }
+
+        }
+    }
+
+    /*
+    private void OnCollisionStay(Collision collision)
+    {
+
+        if (collision.gameObject.tag == "Skeleton" || collision.gameObject.tag == "Player")
+        {
+
+            if (!collisionGameObjects.Contains(collision.gameObject))
+            {
+                collisionGameObjects.Add(collision.gameObject);
+                Debug.LogError("List size is now " + collisionGameObjects.Count + ".");
+            }
+
+        }
+    }
+    */
+
     protected IEnumerator attackDelay(float waitDuration)
     {
-        gameObject.GetComponent<Rigidbody>().isKinematic = true;
+
+        //gameObject.GetComponent<Rigidbody>().isKinematic = true;
         yield return new WaitForSeconds(waitDuration);
-        //loop start here
-        attackTarget.GetComponent<Enemy>().TakeDamage(AttackPower, Knockback, gameObject);
-        //Debug.LogError("Knocked back");
-        //attackTarget.transform.forward = -this.transform.forward;
 
-        //Reset velocity of skeleton before knockback so it doesn't affect the distance
-        attackTarget.GetComponent<Rigidbody>().velocity = Vector3.zero;
-        Debug.Log("Knocked back");
-        //attackTarget.transform.forward = -this.transform.forward;
+        //Debug.LogError("List size is " +collisionGameObjects.Count +".");
 
-        attackTarget.GetComponent<Rigidbody>().velocity = transform.forward * Knockback;
-        //loop end here
+        //If there is at least one gameobject in the collisionGameObjects, iterate them, call
+        //their TakeDamage and move them accordingly. 
+        if (collisionGameObjects.Count > 0) {
+
+            foreach (GameObject g in collisionGameObjects)
+            {
+                try
+                {
+                    if (g.gameObject.tag == "Skeleton")
+                    {           
+                        g.GetComponent<Enemy>().TakeDamage(AttackPower, Knockback, gameObject);
+                        g.GetComponent<Rigidbody>().velocity = Vector3.zero;
+                        g.GetComponent<Rigidbody>().velocity = transform.forward * Knockback;
+                        //Debug.LogError("Attack collided with GameObject " +i + ".");
+                    }
+                    else if (g.gameObject.tag == "Player")
+                    {
+                        g.GetComponent<Player>().TakeDamage(AttackPower, Knockback, gameObject);
+                        g.GetComponent<Rigidbody>().velocity = Vector3.zero;
+                        g.GetComponent<Rigidbody>().velocity = transform.forward * Knockback;
+                        //Debug.LogError("Attack collided with GameObject " + i + ".");
+                    }
+
+                }
+                catch (MissingReferenceException e)
+                {
+                    //Debug.LogError("");
+                }
+            }
+
+        }
+
         yield return new WaitForSeconds(1f);
-        gameObject.GetComponent<Rigidbody>().isKinematic = false;
+
+
+        //gameObject.GetComponent<Rigidbody>().isKinematic = false;
         //attackTarget.GetComponent<Rigidbody>().velocity = Vector3.zero;
-        attackTarget = null; 
+        //attackTarget = null;
+
+        //collisionGameObjects.Clear();
+
         yield return null;
     }
 
