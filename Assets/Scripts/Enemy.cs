@@ -24,6 +24,14 @@ public class Enemy : Character
 
     GameObject latestToucher;
 
+    AudioSource audioSource;
+    AudioClip attack1;
+    AudioClip attack2;
+    AudioClip taunt1;
+    AudioClip taunt2;
+    AudioClip death1;
+    AudioClip death2;
+
     private void Awake()
     {
         InitializeEnemy();
@@ -31,7 +39,7 @@ public class Enemy : Character
 
     void Start()
     {
-
+        
     }
 
     // Update is called once per frame
@@ -90,8 +98,8 @@ public class Enemy : Character
     //Selects a personality randomly and initializes the enemy's stats based on it.
     public void InitializeEnemy()
     {
-        
-        
+
+        audioSource = GetComponent<AudioSource>();
         collisionGameObjects = new List<GameObject>();
 
         //Select a personality randomly.
@@ -104,17 +112,78 @@ public class Enemy : Character
         {
             case EnemyPersonality.aggressive:
                 SetStats(3, 3, 2, 6.0f, CharacterState.idle, 4.0f, GetComponent<Animator>(), true, false, 100, GameObject.FindGameObjectWithTag("ImageTarget"));
+
+                //Assign voices based on the personality.
+                try
+                {
+                    attack1 = (AudioClip)Resources.Load("Sounds/Voices/aggressive_attack1");
+                    attack2 = (AudioClip)Resources.Load("Sounds/Voices/aggressive_attack2");
+                    taunt1 = (AudioClip)Resources.Load("Sounds/Voices/aggressive_taunt1");
+                    taunt2 = (AudioClip)Resources.Load("Sounds/Voices/aggressive_taunt2");
+                    death1 = (AudioClip)Resources.Load("Sounds/Voices/aggressive_death1");
+                    death2 = (AudioClip)Resources.Load("Sounds/Voices/aggressive_death2");
+                }
+                catch (Exception e) { }
+                            
                 break;
             case EnemyPersonality.defensive:
+
+                try
+                {
+                    attack1 = (AudioClip)Resources.Load("Sounds/Voices/defensive_attack1");
+                    attack2 = (AudioClip)Resources.Load("Sounds/Voices/defensive_attack2");
+                    taunt1 = (AudioClip)Resources.Load("Sounds/Voices/defensive_taunt1");
+                    taunt2 = (AudioClip)Resources.Load("Sounds/Voices/defensive_taunt2");
+                    death1 = (AudioClip)Resources.Load("Sounds/Voices/defensive_death1");
+                    death2 = (AudioClip)Resources.Load("Sounds/Voices/defensive_death2");
+                }
+                catch (Exception e) { }
+
                 SetStats(4, 4, 1, 6.0f, CharacterState.idle, 3.0f, GetComponent<Animator>(), true, false, 100, GameObject.FindGameObjectWithTag("ImageTarget"));
                 break;
             case EnemyPersonality.jerk:
+
+                try
+                {
+                    attack1 = (AudioClip)Resources.Load("Sounds/Voices/jerk_attack1");
+                    attack2 = (AudioClip)Resources.Load("Sounds/Voices/jerk_attack2");
+                    taunt1 = (AudioClip)Resources.Load("Sounds/Voices/jerk_taunt1");
+                    taunt2 = (AudioClip)Resources.Load("Sounds/Voices/jerk_taunt2");
+                    death1 = (AudioClip)Resources.Load("Sounds/Voices/jerk_death1");
+                    death2 = (AudioClip)Resources.Load("Sounds/Voices/jerk_death2");
+                }
+                catch (Exception e) { }
+
                 SetStats(2, 2, 2, 6.0f, CharacterState.idle, 5.0f, GetComponent<Animator>(), true, false, 100, GameObject.FindGameObjectWithTag("ImageTarget"));
                 break;
             default:
+
+                try
+                {
+                    attack1 = (AudioClip)Resources.Load("Sounds/Voices/aggressive_attack1");
+                    attack2 = (AudioClip)Resources.Load("Sounds/Voices/aggressive_attack2");
+                    taunt1 = (AudioClip)Resources.Load("Sounds/Voices/aggressive_taunt1");
+                    taunt2 = (AudioClip)Resources.Load("Sounds/Voices/aggressive_taunt2");
+                    death1 = (AudioClip)Resources.Load("Sounds/Voices/aggressive_death1");
+                    death2 = (AudioClip)Resources.Load("Sounds/Voices/aggressive_death2");
+                }
+                catch (Exception e) { }
+
                 SetStats(2, 2, 2, 6.0f, CharacterState.idle, 3.5f, GetComponent<Animator>(), true, false, 100, GameObject.FindGameObjectWithTag("ImageTarget"));
                 break;
         }
+
+        try
+        {
+            //Set the superclass' audio settings.
+            characterAudioSource = audioSource;
+            destroyGameObject = (AudioClip)Resources.Load("Sounds/destroy_gameobject");
+            swordAttack1 = (AudioClip)Resources.Load("Sounds/enemy_sword_attack");
+            swordAttack2 = (AudioClip)Resources.Load("Sounds/player_sword_attack");
+            swordSlash = (AudioClip)Resources.Load("Sounds/sword_slash");
+        }
+        catch (Exception e) {}
+        
 
         Debug.Log("Enemy's personality set to "+ Personality.ToString() + ".");
         SelectTargetRandomly();
@@ -371,8 +440,19 @@ public class Enemy : Character
         {
 
             Health = Health - damage;
-            //Debug.LogError("Damage dealt to enemy. His current HP is " + Health + ".");
-          
+
+            int random = RandomNumberGenerator.NextRandom(1, 5);
+
+            audioSource.Stop();
+
+            if (random == 1) {
+                audioSource.PlayOneShot(attack1);
+            }
+            else if (random == 2)
+            {
+                audioSource.PlayOneShot(attack2);
+            }
+
             //Call die if the characte's health goes to zero.
             if (Health < 1)
             {
@@ -428,6 +508,21 @@ public class Enemy : Character
             GetComponent<Rigidbody>().mass = 0.5f;
             CharacterAnimator.CrossFade("Death", 0.0f);
             State = CharacterState.dead;
+            CanMove = false;
+            Moving = false;
+
+            int random = RandomNumberGenerator.NextRandom(1, 4);
+
+            audioSource.Stop();
+
+            if (random == 1)
+            {
+                audioSource.PlayOneShot(death1);
+            }
+            else if (random == 2)
+            {
+                audioSource.PlayOneShot(death2);
+            }
 
             //If a valid killer object is given (a gameobject with the Player script) 
             //and the player's state isn't dead.
@@ -575,6 +670,20 @@ public class Enemy : Character
             yield return new WaitForSeconds(1f);
 
             if (!CharacterAnimator.GetCurrentAnimatorStateInfo(0).IsName("Taunt")) {
+
+                //Play either one of the taunt sound effect randomly.
+                int random = RandomNumberGenerator.NextRandom(1, 6);
+
+                audioSource.Stop();
+
+                if (random == 1)
+                {
+                    audioSource.PlayOneShot(taunt1);
+                }
+                if (random == 2){
+                    audioSource.PlayOneShot(taunt2);
+                }
+                
                 CharacterAnimator.CrossFade("Taunt", 0.0f);
             }
             

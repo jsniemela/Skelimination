@@ -11,7 +11,10 @@ public class Player : Character  {
     Vector3 movement;
     public int Score { get; set; }
     public int Kills { get; set; }
-    
+
+    AudioSource audioSource;
+    AudioClip playerSpawn;
+    AudioClip apologies;
 
     public void InitializePlayer(int maxHealth, int health, int attackPower, float knockback, CharacterState state, 
         float speed, Animator animator, bool canMove, bool moving, GameObject ground, int score, int kills)
@@ -29,6 +32,24 @@ public class Player : Character  {
         Score = score;
         Kills = kills;
         collisionGameObjects = new List<GameObject>();
+
+        audioSource = GetComponent<AudioSource>();
+
+        try
+        {
+            //Initialize own audio sources.
+            playerSpawn = (AudioClip)Resources.Load("Sounds/player_spawns");
+            apologies = (AudioClip)Resources.Load("Sounds/Voices/friendlyfire1");
+
+            //Set the superclass' audio settings.
+            characterAudioSource = audioSource;
+            destroyGameObject = (AudioClip)Resources.Load("Sounds/destroy_gameobject");
+            swordAttack1 = (AudioClip)Resources.Load("Sounds/enemy_sword_attack");
+            swordAttack2 = (AudioClip)Resources.Load("Sounds/player_sword_attack");
+            swordSlash = (AudioClip)Resources.Load("Sounds/sword_slash");
+        }
+        catch (Exception e) { }
+
     }
     
 
@@ -36,6 +57,7 @@ public class Player : Character  {
     private void Awake()
     {
         InitializePlayer(10, 10, 1, 14.0f, CharacterState.idle, 0.2f, GetComponent<Animator>(), true, false, GameObject.FindGameObjectWithTag("ImageTarget"), 0, 0);
+        audioSource.PlayOneShot(playerSpawn);
     }
 
 
@@ -205,6 +227,7 @@ public class Player : Character  {
 
         if (State != CharacterState.dead) {
 
+            audioSource.PlayOneShot(apologies);
             CharacterAnimator.CrossFade("Death", 0.0f);
             State = CharacterState.dead;
             CanMove = false;

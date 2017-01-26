@@ -20,6 +20,12 @@ abstract public class Character : NetworkBehaviour
     public GameObject imageTarget;
     public List<GameObject> collisionGameObjects;
 
+    protected AudioSource characterAudioSource;
+    protected AudioClip destroyGameObject;
+    protected AudioClip swordAttack1;
+    protected AudioClip swordAttack2;
+    protected AudioClip swordSlash;
+
     public int Health
     {
         get
@@ -120,15 +126,20 @@ abstract public class Character : NetworkBehaviour
         yield return null;
     }
 
+    //Wait, play a sound effect, disable the object, wait, destroy.
     protected IEnumerator WaitAndDestroy(float waitDuration, GameObject objectToBeDestroyed)
     {
         yield return new WaitForSeconds(waitDuration);
+        characterAudioSource.PlayOneShot(destroyGameObject, 0.25f);
+        //GetComponent<MeshRenderer>().enabled = false;
+        yield return new WaitForSeconds(1.3f);
         Destroy(objectToBeDestroyed);
     }
 
     protected IEnumerator WaitAndDisable(float waitDuration, GameObject objectToBeDisabled)
     {
         yield return new WaitForSeconds(waitDuration);
+        characterAudioSource.PlayOneShot(destroyGameObject);
         objectToBeDisabled.SetActive(false);
     }
 
@@ -136,13 +147,28 @@ abstract public class Character : NetworkBehaviour
     //calls TakeDamage() method of every Enemy or Player who are currently stored in the collisionGameObjects list.
     protected IEnumerator attackDelay(float waitDuration)
     {
-
+        
         yield return new WaitForSeconds(waitDuration);
+
+        characterAudioSource.PlayOneShot(swordSlash, 0.15f);
 
         //If there is at least one gameobject in the collisionGameObjects, iterate them, call
         //their TakeDamage and move them accordingly. 
         if (collisionGameObjects.Count > 0)
-        {
+        {          
+
+            int random = RandomNumberGenerator.NextRandom(1, 3);
+
+            //characterAudioSource.Stop();
+
+            if (random == 1)
+            {
+                characterAudioSource.PlayOneShot(swordAttack2);
+            }
+            else
+            {
+                characterAudioSource.PlayOneShot(swordAttack1);
+            }
 
             foreach (GameObject g in collisionGameObjects)
             {
