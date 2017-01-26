@@ -1,33 +1,35 @@
-﻿using System;
+﻿using System.Collections;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
 public class GameManager : MonoBehaviour
 {
+	public List<EnemyWave> enemyWaves = new List<EnemyWave>();
 	public GameObject EnemyObject;
-	public int CurrentRound { get; private set; }
 
+	public int CurrentWave { get; private set; }
 	public List<PlayerScore> Scores { get; private set; }
-	public int EnemyKills { get; private set; }
 
 	private List<SpawnArea> spawnAreas = new List<SpawnArea>();
 	private List<Enemy> enemies = new List<Enemy>();
-		
+
+	private bool sceneLoaded = false;
+
 	void Start()
 	{
+		CurrentWave = -1;
+
 		if (FindObjectsOfType<GameManager>().Length > 1)
 		{
-			Debug.LogWarning("Multiple GameManager objects present in the scene");
+			Debug.LogWarning("Multiple GameManagers present in the scene");
 			Destroy(this);
 			return;
 		}
 
 		SceneManager.sceneLoaded += OnSceneLoad;
 		SceneManager.LoadScene("Scenes/GameplayScene", LoadSceneMode.Additive);
-		
+
 		spawnAreas.AddRange(FindObjectsOfType<SpawnArea>());
 		if (spawnAreas.Count == 0)
 			Debug.LogError("No spawn areas found in the scene");
@@ -43,11 +45,11 @@ public class GameManager : MonoBehaviour
 		GameObject[] objects = FindObjectsOfType<GameObject>();
 
 		GameObject imageTarget = GameObject.FindGameObjectWithTag("ImageTarget");
-		Transform levelTransform = imageTarget.transform.FindChild("Level");
+		Transform levelTransform = imageTarget.transform.FindChild("Level") ?? imageTarget.transform;
 
 		// parent all level related objects under ImageTarget.Level
 		GameObject attached = this.transform.gameObject;
-		for (int i=0; i<objects.Length; i++)
+		for (int i = 0; i < objects.Length; i++)
 		{
 			GameObject obj = objects[i];
 			if (obj == attached || obj.scene.name == "GameplayScene")
@@ -55,12 +57,23 @@ public class GameManager : MonoBehaviour
 
 			obj.transform.SetParent(levelTransform, true);
 		}
+
+		sceneLoaded = true;
 	}
 
 	void Update()
 	{
-		if (CurrentRound == 0)
-			OnRoundStart();
+		if (!sceneLoaded)
+			return;
+
+		if (CurrentWave == -1)
+		{
+			// wait for player to get spawned by network manager
+			if (GameObject.FindGameObjectWithTag("Player") == null)
+				return;
+
+			StartCoroutine(OnWaveStart());
+		}
 	}
 
 	public static GameManager GetInstance()
@@ -80,19 +93,14 @@ public class GameManager : MonoBehaviour
 
 	private void SpawnEnemy()
 	{
-		GameObject imageTarget = GameObject.Find("ImageTarget");
+		GameObject imageTarget = GameObject.FindWithTag("ImageTarget");
 		if (imageTarget == null)
 		{
 			Debug.LogError("ImageTarget object not found in the scene");
 			return;
 		}
 
-		Transform skeletonsGroup = imageTarget.transform.FindChild("Skeletons");
-		if (skeletonsGroup == null)
-		{
-			Debug.LogError("ImageTarget does not have Skeletons child object");
-			return;
-		}
+		Transform skeletonsGroup = imageTarget.transform.FindChild("Skeletons") ?? imageTarget.transform;
 
 		// try to get a random spawn position which is not already occupied by other enemies or players
 
@@ -136,20 +144,41 @@ public class GameManager : MonoBehaviour
 			enemies.Add(enemy);
 	}
 
-	public void OnRoundStart()
+	protected IEnumerator OnWaveStart()
 	{
-		CurrentRound++;
+		CurrentWave++;
 
-		SpawnEnemy();
-		SpawnEnemy();
-		SpawnEnemy();
+		Debug.Log("Current wave: " + CurrentWave + "/" + enemyWaves.Count);
+
+		if (CurrentWave >= enemyWaves.Count)
+		{
+			// TODO: no more waves left in this level, go to next level?
+			Debug.Log("No more waves left");
+			yield return null;
+		}
+
+		yield return new WaitForSeconds(1.0f);
+
+		// spaw enemies
+		for (int i = 0; i < enemyWaves[CurrentWave].numEnemies; i++)
+			SpawnEnemy();
+
+		if (enemies.Count == 0)
+		{
+			Debug.LogWarning("No enemies were spawned in this wave");
+			StartCoroutine(OnWaveEnd());
+		}
 	}
 
-	public void OnRoundEnd()
+	protected IEnumerator OnWaveEnd()
 	{
+		Debug.Log("All enemies are dead, wave ended");
 
+		yield return new WaitForSeconds(1.0f);
+
+		StartCoroutine(OnWaveStart());
 	}
-		
+
 	public void OnDeath(Character victim, Character killer)
 	{
 		Enemy victimEnemy = victim as Enemy;
@@ -161,7 +190,7 @@ public class GameManager : MonoBehaviour
 			Player killerPlayer = killer as Player;
 			if (killerPlayer != null)
 			{
-				for (int i=0; i<Scores.Count; i++)
+				for (int i = 0; i < Scores.Count; i++)
 				{
 					if (Scores[i].PlayerObject == killerPlayer)
 					{
@@ -171,11 +200,14 @@ public class GameManager : MonoBehaviour
 				}
 			}
 		}
+
+		if (enemies.Count == 0)
+			StartCoroutine(OnWaveEnd());
 	}
 
 	public int GetScoreForPlayer(Player player)
 	{
-		for (int i=0; i<Scores.Count; i++)
+		for (int i = 0; i < Scores.Count; i++)
 		{
 			if (Scores[i].PlayerObject == player)
 				return Scores[i].Score;
