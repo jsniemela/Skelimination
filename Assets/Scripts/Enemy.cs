@@ -14,10 +14,7 @@ public class Enemy : Character
     private GameObject target;
 
     //score determines the amount of points that the player gets from defeating this enemy.
-    public int Score { get; set; }
-
-    //random is used for calculating random numbers that are used in AI randomizations and target selection.
-    System.Random random = new System.Random();
+    public int Score { get; set; } 
 
     //The enemy selects a new command based on his personality when commandDecided is false.
     private bool commandDecided;
@@ -98,7 +95,9 @@ public class Enemy : Character
         collisionGameObjects = new List<GameObject>();
 
         //Select a personality randomly.
-        Personality = (EnemyPersonality)random.Next(0, (int)Enum.GetNames(typeof(EnemyPersonality)).Length);
+        //Personality = (EnemyPersonality)random.Next(0, (int)Enum.GetNames(typeof(EnemyPersonality)).Length);
+        Personality = (EnemyPersonality)RandomNumberGenerator.NextRandom(0, (int)Enum.GetNames(typeof(EnemyPersonality)).Length);
+       
 
         //Initialize stats based on the personality.
         switch (Personality)
@@ -117,6 +116,7 @@ public class Enemy : Character
                 break;
         }
 
+        Debug.Log("Enemy's personality set to "+ Personality.ToString() + ".");
         SelectTargetRandomly();
         commandDecided = false;
         executingCommand = false;
@@ -154,7 +154,8 @@ public class Enemy : Character
         int n = targetArray.Length;
         while (n > 1)
         {
-            int k = random.Next(n--);
+            //int k = random.Next(n--);
+            int k = RandomNumberGenerator.NextRandom(n--);
             GameObject temp = targetArray[n];
             targetArray[n] = targetArray[k];
             targetArray[k] = temp;
@@ -200,7 +201,8 @@ public class Enemy : Character
     public void DecideCommand()
     {
 
-        int command = random.Next(1, 10);
+        //int command = random.Next(1, 10);
+        int command = RandomNumberGenerator.NextRandom(1, 10);
 
         //Aggressive personality uses mostly attacks and taunts.
         if (Personality == EnemyPersonality.aggressive)
@@ -208,7 +210,7 @@ public class Enemy : Character
 
             if (command <= 7)
             {
-                StartCoroutine(AttackCommand((float)random.Next(5, 10)));
+                StartCoroutine(AttackCommand((float)RandomNumberGenerator.NextRandom(4, 8)));
             }
             else if (command > 7 && command <= 9)
             {
@@ -216,7 +218,7 @@ public class Enemy : Character
             }
             else
             {
-                StartCoroutine(DefendCommand((float)random.Next(4, 8)));
+                StartCoroutine(DefendCommand((float)RandomNumberGenerator.NextRandom(4, 7)));
             }
 
         }
@@ -225,13 +227,13 @@ public class Enemy : Character
         else if (Personality == EnemyPersonality.defensive)
         {
 
-            if (command <= 3)
+            if (command <= 4)
             {
-                StartCoroutine(DefendCommand((float)random.Next(4, 8)));
+                StartCoroutine(DefendCommand((float)RandomNumberGenerator.NextRandom(3, 7)));
             }
-            else if (command > 3 && command <= 8)
+            else if (command > 4 && command <= 8)
             {
-                StartCoroutine(AttackCommand((float)random.Next(5, 10)));
+                StartCoroutine(AttackCommand((float)RandomNumberGenerator.NextRandom(3, 8)));
             }
             else
             {
@@ -244,17 +246,17 @@ public class Enemy : Character
         else if (Personality == EnemyPersonality.jerk)
         {
 
-            if (command <= 5)
+            if (command <= 4)
             {
                 StartCoroutine(TauntCommand());
             }
-            else if (command > 5 && command <= 9)
+            else if (command > 4 && command <= 9)
             {
-                StartCoroutine(AttackCommand((float)random.Next(3, 7)));
+                StartCoroutine(AttackCommand((float)RandomNumberGenerator.NextRandom(3, 6)));
             }
             else
             {
-                StartCoroutine(DefendCommand((float)random.Next(3, 5)));
+                StartCoroutine(DefendCommand((float)RandomNumberGenerator.NextRandom(3, 4)));
             }
 
         }
@@ -423,6 +425,7 @@ public class Enemy : Character
 
         if (State != CharacterState.dead) {
 
+            GetComponent<Rigidbody>().mass = 0.5f;
             CharacterAnimator.CrossFade("Death", 0.0f);
             State = CharacterState.dead;
 
@@ -453,8 +456,8 @@ public class Enemy : Character
 
            }
 
-            //Wait for five seconds before destroying this GameObject.
-            StartCoroutine(WaitAndDestroy(5.0f, gameObject));
+           //Wait for five seconds before destroying this GameObject.
+           StartCoroutine(WaitAndDestroy(10.0f, gameObject));
 
         }
 
@@ -509,9 +512,9 @@ public class Enemy : Character
     private IEnumerator AttackCommand(float duration)
     {
 
-        //Debug.Log("An enemy decided to use attack command for " + duration + " seconds.");
+        Debug.Log("An enemy decided to use attack command for " + duration + " seconds.");
         StartCoroutine(CommandDuration(duration));
-        float attackDistance = (float)random.Next(3, 5);
+        float attackDistance = (float)RandomNumberGenerator.NextRandom(3, 5);
 
         while (executingCommand == true)
         {
@@ -534,10 +537,10 @@ public class Enemy : Character
     private IEnumerator DefendCommand(float duration)
     {
 
-        //Debug.Log("An enemy decided to use defend command for " + duration + " seconds.");
+        Debug.Log("An enemy decided to use defend command for " + duration + " seconds.");
         StartCoroutine(CommandDuration(duration));
 
-        float avoidingDistance = (float)random.Next(7, 10);
+        float avoidingDistance = (float)RandomNumberGenerator.NextRandom(7, 10);
 
         while (executingCommand == true)
         {
@@ -560,7 +563,7 @@ public class Enemy : Character
     private IEnumerator TauntCommand()
     {
 
-        //Debug.Log("An enemy decided to use taunt command.");
+        Debug.Log("An enemy decided to use taunt command.");
         executingCommand = true;
 
         if (target != null && target.GetComponent<Player>().State != CharacterState.dead && State != CharacterState.dead)
@@ -569,13 +572,13 @@ public class Enemy : Character
             Moving = false;
             RotateSmoothlyTowardsTarget(target.transform);
 
-            yield return new WaitForSeconds(2f);
+            yield return new WaitForSeconds(1f);
 
             if (!CharacterAnimator.GetCurrentAnimatorStateInfo(0).IsName("Taunt")) {
                 CharacterAnimator.CrossFade("Taunt", 0.0f);
             }
             
-            yield return new WaitForSeconds(3f);
+            yield return new WaitForSeconds(1.5f);
 
             CanMove = true;
 
