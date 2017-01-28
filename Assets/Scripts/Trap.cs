@@ -21,5 +21,10 @@ public class Trap : MonoBehaviour {
             Debug.Log("Trap damaged skeleton.");
             other.gameObject.GetComponent<Enemy>().TakeDamage(0, 0, gameObject);
         }
+        if (other.gameObject.tag == "Player")
+        {
+            //disabled until there's a better damage animation for the player
+            //other.gameObject.GetComponent<Player>().TakeDamage(0, 0, gameObject);
+        }
     }
 }

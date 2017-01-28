@@ -6,15 +6,28 @@ using System.Collections.Generic;
 using System;
 
 public class Player : Character  {
-
+    [SyncVar]
     private GameObject attackTarget;
+    [SyncVar]
     Vector3 movement;
+    [SyncVar]
+    Quaternion targetRotation;
+    [SyncVar]
+    Quaternion newRotation;
+    [SyncVar]
+    bool attacking;
+
     public int Score { get; set; }
     public int Kills { get; set; }
 
     AudioSource audioSource;
     AudioClip playerSpawn;
     AudioClip apologies;
+
+    [SyncVar]
+    float horizontalMovement;
+    [SyncVar]
+    float verticalMovement;
 
     public void InitializePlayer(int maxHealth, int health, int attackPower, float knockback, CharacterState state, 
         float speed, Animator animator, bool canMove, bool moving, GameObject ground, int score, int kills)
@@ -62,57 +75,59 @@ public class Player : Character  {
 
 
 	void Start () {
-        //GameObject imagetarget = GameObject.FindGameObjectWithTag("ImageTarget");
         transform.SetParent(imageTarget.transform, false);
     }
 
 	// Update is called once per frame
 	void Update () {
-
         KillTheCharacterIfOutOfBounds();
-
-    }
-
-    private void FixedUpdate()
-    {
-
-        if (!isLocalPlayer)
+        SetMovementAnimation();
+        if (State == CharacterState.dead)
         {
-            return;
-        }
-
-        if (State == CharacterState.dead) {
             return;
         }
 
         //Lock rotation so that the character doesn't fall over
         transform.rotation = Quaternion.Euler(0, transform.rotation.eulerAngles.y, 0);
 
+        if (!isLocalPlayer)
+        {
+            return;
+        }
+
+        
+
         if (CanMove == true)
         {
-            Movement();
+            //get horizontal and vertical input from controller
+            horizontalMovement = CnInputManager.GetAxis("Horizontal");
+            verticalMovement = CnInputManager.GetAxis("Vertical");
+            CmdMove(horizontalMovement, verticalMovement);
         }
 
 
-        SetMovementAnimation();
+        
 
         if (CnInputManager.GetButton("Attack"))
         {
-                 
-            Attack();
-            
+            //attacking variable isn't really used for anything, but attack doesn't seem to synchronize unless they have at least one parameter. 
+            attacking = true;
+            CmdAttack(attacking);
         }
-
     }
 
-    private void Movement ()
+    [Command]
+    void CmdMove(float horizontalMovement, float verticalMovement)
     {
-        //get horizontal and vertical input from controller
-        float horizontalMovement = CnInputManager.GetAxis("Horizontal");
-        float verticalMovement = CnInputManager.GetAxis("Vertical");
+        //passes the movement command to client as a remote procedure call
+        RpcMove(horizontalMovement, verticalMovement);
+    }
+    
 
+    [ClientRpc]
+    private void RpcMove (float horizontalMovement, float verticalMovement)
+    {
         //apply input to movement direction
-        Vector3 movement = new Vector3(horizontalMovement, 0.0f, verticalMovement);
         movement = new Vector3(horizontalMovement, 0.0f, verticalMovement);
 
         //apply camera direction to movement
@@ -126,41 +141,30 @@ public class Player : Character  {
         //change moving state to true when moving
         Moving = horizontalMovement != 0 || verticalMovement != 0;
 
-        if (movement != Vector3.zero)
+        if (Moving == true)
         {
-            //var targetDirection = new Vector3 (Input.GetAxis ("Horizontal"), 0.0f, Input.GetAxis ("Vertical"));
-            //targetDirection = Camera.main.transform.TransformDirection (targetDirection);
-            //targetDirection.y = 0.0f;
-            Quaternion targetRotation = Quaternion.LookRotation(movement, Vector3.up);
+            var characterMovement = transform.position + movement;
+            targetRotation = Quaternion.LookRotation(movement, Vector3.up);
             float rotationSpeed = 60.0f;
-            Quaternion newRotation = Quaternion.Lerp(GetComponent<Rigidbody>().rotation, targetRotation, rotationSpeed * Time.deltaTime);
+            newRotation = Quaternion.Lerp(GetComponent<Rigidbody>().rotation, targetRotation, rotationSpeed * Time.deltaTime);
+            //rotate character
             GetComponent<Rigidbody>().MoveRotation(newRotation);
-        }
-        var characterMovement = transform.position + movement;
-        if (Moving)
-        {
+
             //move character
             GetComponent<Rigidbody>().MovePosition(characterMovement);
             //fade into running animation
             CharacterAnimator.CrossFade("Run", 0.0f);
-			//change character state to moving
+            //change character state to moving
             State = CharacterState.moving;
         }
     }
 
     public override void TakeDamage(int damage, float knockback, GameObject attacker)
     {
-
         if (State != CharacterState.dead && State != CharacterState.knockback)
         {
-
+            //Debug.Log("Damage dealt to player. His current HP is " + Health+".");
             Health = Health - damage;
-            //Debug.LogError("Damage dealt to player. His current HP is " + Health+".");
-
-            if (knockback > 0)
-            {
-                
-            }
 
             //Call die if the characte's health goes to zero.
             if (Health < 1)
@@ -169,17 +173,22 @@ public class Player : Character  {
             }
             else
             {
+                //Animation taken from skeleton so it looks wrong on the knight. 
                 CharacterAnimator.CrossFade("Knockback", 0.0f);              
                 StartCoroutine(StopCharacter(5.0f));
                 State = CharacterState.knockback;
             }
-            
         }
-
     }
 
-    protected override void Attack() {
+    [Command]
+    void CmdAttack(bool attacking)
+    {
+        RpcAttack(attacking);
+    }
 
+    [ClientRpc]
+    protected void RpcAttack(bool attacking) {
         if (!CharacterAnimator.GetCurrentAnimatorStateInfo(0).IsName("Attack") && State != CharacterState.attack && State != CharacterState.knockback && State != CharacterState.dead)
         {
             CanMove = false;
@@ -194,17 +203,12 @@ public class Player : Character  {
     {
         if (collision.gameObject.tag == "Skeleton" || collision.gameObject.tag == "Player")
         {
-
             if (!collisionGameObjects.Contains(collision.gameObject))
             {
+                //Collision with a skeleton or player is added to a list for the knockback.
                 collisionGameObjects.Add(collision.gameObject);
-                //Debug.LogError("Gameobject entered collision.");
-                //Debug.LogError("List size is now " + collisionGameObjects.Count +".");
             }
-
         }
-
-
     }
 
     void OnTriggerExit(Collider collision)
@@ -214,9 +218,8 @@ public class Player : Character  {
 
             if (collisionGameObjects.Contains(collision.gameObject))
             {
+                //Player or skeleton collision is removed from the list after they leave the collision zone.
                 collisionGameObjects.Remove(collision.gameObject);
-                //Debug.LogError("Gameobject exited collision.");
-                //Debug.LogError("List size is now " + collisionGameObjects.Count + ".");
             }
 
         }
@@ -226,7 +229,6 @@ public class Player : Character  {
     {
 
         if (State != CharacterState.dead) {
-
             audioSource.PlayOneShot(apologies);
             CharacterAnimator.CrossFade("Death", 0.0f);
             State = CharacterState.dead;

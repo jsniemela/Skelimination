@@ -427,7 +427,7 @@ public class Enemy : Character
 
         if (distanceToTarget < minDistance && State != CharacterState.knockback && State != CharacterState.dead && State != CharacterState.attack)
         {
-            Attack();
+            RpcAttack();
         }
 
     }
@@ -485,7 +485,7 @@ public class Enemy : Character
     }
         
     //Lauches the attack animation and stops movement for a while.
-    protected override void Attack()
+    protected override void RpcAttack()
     {
         StartCoroutine(StopCharacter(3.0f));
 

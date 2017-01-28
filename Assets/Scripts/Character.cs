@@ -7,11 +7,13 @@ public enum CharacterState { idle, moving, knockback, taunt, frozen, dead, attac
 
 abstract public class Character : NetworkBehaviour
 {
-
+    
     public int MaxHealth { get; set; }
+    [SyncVar]
     private int health;
     public int AttackPower { get; set; }
     public float Knockback { get; set; }
+    [SyncVar]
     private CharacterState state;
     public float Speed { get; set; }
     public Animator CharacterAnimator { get; set; }
@@ -113,7 +115,7 @@ abstract public class Character : NetworkBehaviour
 
     public virtual void TakeDamage(int damage, float knockback, GameObject attacker) { }
 
-    protected virtual void Attack() { }
+    protected virtual void RpcAttack() { }
 
     protected virtual void Die(GameObject killer) { }
 
