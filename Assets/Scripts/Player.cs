@@ -8,14 +8,12 @@ using System;
 public class Player : Character  {
     [SyncVar]
     private GameObject attackTarget;
-    [SyncVar]
     Vector3 movement;
     [SyncVar]
     Quaternion targetRotation;
-    [SyncVar]
     Quaternion newRotation;
-    [SyncVar]
     bool attacking;
+    float rotationSpeed = 60.0f;
 
     public int Score { get; set; }
     public int Kills { get; set; }
@@ -102,7 +100,8 @@ public class Player : Character  {
             //get horizontal and vertical input from controller
             horizontalMovement = CnInputManager.GetAxis("Horizontal");
             verticalMovement = CnInputManager.GetAxis("Vertical");
-            CmdMove(horizontalMovement, verticalMovement);
+            targetRotation = Quaternion.LookRotation(movement, Vector3.up);
+            CmdMove(horizontalMovement, verticalMovement, targetRotation);
         }
 
 
@@ -117,15 +116,15 @@ public class Player : Character  {
     }
 
     [Command]
-    void CmdMove(float horizontalMovement, float verticalMovement)
+    void CmdMove(float horizontalMovement, float verticalMovement, Quaternion targetRotation)
     {
         //passes the movement command to client as a remote procedure call
-        RpcMove(horizontalMovement, verticalMovement);
+        RpcMove(horizontalMovement, verticalMovement, targetRotation);
     }
     
 
     [ClientRpc]
-    private void RpcMove (float horizontalMovement, float verticalMovement)
+    private void RpcMove (float horizontalMovement, float verticalMovement, Quaternion targetRotation)
     {
         //apply input to movement direction
         movement = new Vector3(horizontalMovement, 0.0f, verticalMovement);
@@ -143,13 +142,11 @@ public class Player : Character  {
 
         if (Moving == true)
         {
-            var characterMovement = transform.position + movement;
-            targetRotation = Quaternion.LookRotation(movement, Vector3.up);
-            float rotationSpeed = 60.0f;
             newRotation = Quaternion.Lerp(GetComponent<Rigidbody>().rotation, targetRotation, rotationSpeed * Time.deltaTime);
             //rotate character
             GetComponent<Rigidbody>().MoveRotation(newRotation);
 
+            Vector3 characterMovement = transform.position + movement;
             //move character
             GetComponent<Rigidbody>().MovePosition(characterMovement);
             //fade into running animation
