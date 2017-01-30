@@ -77,35 +77,49 @@ public class Player : Character  {
     }
 
 	// Update is called once per frame
+    
 	void Update () {
+        //Lock rotation so that the character doesn't fall over
+        transform.rotation = Quaternion.Euler(0, transform.rotation.eulerAngles.y, 0);
         KillTheCharacterIfOutOfBounds();
         SetMovementAnimation();
         if (State == CharacterState.dead)
         {
             return;
         }
+        Input();
 
-        //Lock rotation so that the character doesn't fall over
-        transform.rotation = Quaternion.Euler(0, transform.rotation.eulerAngles.y, 0);
+    }
+    
+    private void FixedUpdate()
+    {
+        /*
+         * FixedUpdate works more reliably in single player, but not in multiplayer. There could be a check here to use FixedUpdate 
+         * when playing alone and Update when in multiplayer.
+         */
+        //Input();
+    }
 
+    void Input()
+    {
         if (!isLocalPlayer)
         {
             return;
         }
-
-        
-
         if (CanMove == true)
         {
             //get horizontal and vertical input from controller
             horizontalMovement = CnInputManager.GetAxis("Horizontal");
             verticalMovement = CnInputManager.GetAxis("Vertical");
-            targetRotation = Quaternion.LookRotation(movement, Vector3.up);
+            if (movement != Vector3.zero)
+            {
+                targetRotation = Quaternion.LookRotation(movement, Vector3.up);
+            } else
+            {
+                targetRotation = transform.rotation;
+            }
             CmdMove(horizontalMovement, verticalMovement, targetRotation);
         }
-
-
-        
 
         if (CnInputManager.GetButton("Attack"))
         {
@@ -122,7 +136,6 @@ public class Player : Character  {
         RpcMove(horizontalMovement, verticalMovement, targetRotation);
     }
     
-
     [ClientRpc]
     private void RpcMove (float horizontalMovement, float verticalMovement, Quaternion targetRotation)
     {
@@ -145,7 +158,6 @@ public class Player : Character  {
             newRotation = Quaternion.Lerp(GetComponent<Rigidbody>().rotation, targetRotation, rotationSpeed * Time.deltaTime);
             //rotate character
             GetComponent<Rigidbody>().MoveRotation(newRotation);
-
             Vector3 characterMovement = transform.position + movement;
             //move character
             GetComponent<Rigidbody>().MovePosition(characterMovement);
