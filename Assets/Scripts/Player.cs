@@ -74,6 +74,8 @@ public class Player : Character  {
 
 	void Start () {
         transform.SetParent(imageTarget.transform, false);
+
+		GameManager.GetInstance().RegisterPlayer(this);
     }
 
 	// Update is called once per frame
@@ -247,6 +249,11 @@ public class Player : Character  {
             StartCoroutine(WaitAndDisable(5.0f, gameObject));
             //Notify GameLogic
 
+			Character killerCharacter = killer != null ? killer.GetComponent<Player>() : null;
+			if (killerCharacter == null)
+				killerCharacter = killer != null ? killer.GetComponent<Enemy>() : null;
+
+			GameManager.GetInstance().OnDeath(this, killerCharacter);
         }
 
     }

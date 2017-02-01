@@ -524,32 +524,11 @@ public class Enemy : Character
                 audioSource.PlayOneShot(death2);
             }
 
-            //If a valid killer object is given (a gameobject with the Player script) 
-            //and the player's state isn't dead.
-            if (killer != null && killer.GetComponent<Player>().State != CharacterState.dead)
-            {
-                //Add this enemy's score and a kill to the player.
-                killer.GetComponent<Player>().Score += Score;
-                killer.GetComponent<Player>().Kills += 1;
-                Debug.Log("A player killed an enemy and received " + Score + " points.");
-            }
+			Player killerPlayer = killer != null ? killer.GetComponent<Player>() : null;
+			if (killerPlayer == null)
+				killerPlayer = latestToucher != null ? latestToucher.GetComponent<Player>() : null;
 
-            //A valid killer argument wasn't given.
-            else if (killer == null) {
-
-                //Give the latest player who has touched this enemy the points.
-                if (latestToucher != null && latestToucher.GetComponent<Player>().State != CharacterState.dead)
-                {
-                    latestToucher.GetComponent<Player>().Score += Score;
-                    latestToucher.GetComponent<Player>().Kills += 1;
-                    Debug.Log("A player convinced an enemy to kill himself or pushed him off the platform and received " + Score + " points.");
-                }
-                else
-                {
-                    Debug.Log("An enemy killed himself.");
-                }
-
-           }
+			GameManager.GetInstance().OnDeath(this, killerPlayer);
 
            //Wait for five seconds before destroying this GameObject.
            StartCoroutine(WaitAndDestroy(10.0f, gameObject));

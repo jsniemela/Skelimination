@@ -11,15 +11,18 @@ public class GameManager : MonoBehaviour
 
 	public int CurrentWave { get; private set; }
 	public List<PlayerScore> Scores { get; private set; }
+	public Player LocalPlayer { get; private set; }
 
 	private List<SpawnArea> spawnAreas = new List<SpawnArea>();
 	private List<Enemy> enemies = new List<Enemy>();
 
 	private bool sceneLoaded = false;
+	private static GameManager singleton = null;
 
 	void Start()
 	{
 		CurrentWave = -1;
+		Scores = new List<PlayerScore>();
 
 		if (FindObjectsOfType<GameManager>().Length > 1)
 		{
@@ -27,6 +30,7 @@ public class GameManager : MonoBehaviour
 			Destroy(this);
 			return;
 		}
+		singleton = this;
 
 		SceneManager.sceneLoaded += OnSceneLoad;
 		SceneManager.LoadScene("Scenes/GameplayScene", LoadSceneMode.Additive);
@@ -90,17 +94,21 @@ public class GameManager : MonoBehaviour
 
 	public static GameManager GetInstance()
 	{
-		GameManager instance = FindObjectOfType<GameManager>();
-		if (instance == null)
-			Debug.LogError("GameManager object not found in the scene");
-
-		return instance;
+		return singleton;
 	}
 
-	private void SpawnPlayer()
+	public void RegisterPlayer(Player player)
 	{
+		if (player.isLocalPlayer)
+			LocalPlayer = player;
 
 		// update PlayerScore.PlayerObject with newly spawned player character
+		Scores.Add(new PlayerScore()
+		{
+			Name = "name",
+			Score = 0,
+			PlayerObject = player,
+		});
 	}
 
 	private void SpawnEnemy()
@@ -162,23 +170,24 @@ public class GameManager : MonoBehaviour
 
 		Debug.Log("Current wave: " + CurrentWave + "/" + enemyWaves.Count);
 
-		if (CurrentWave >= enemyWaves.Count)
+		if (CurrentWave < enemyWaves.Count)
+		{
+			yield return new WaitForSeconds(1.0f);
+
+			// spaw enemies
+			for (int i = 0; i < enemyWaves[CurrentWave].numEnemies; i++)
+				SpawnEnemy();
+
+			if (enemies.Count == 0)
+			{
+				Debug.LogWarning("No enemies were spawned in this wave");
+				StartCoroutine(OnWaveEnd());
+			}
+		}
+		else
 		{
 			// TODO: no more waves left in this level, go to next level?
 			Debug.Log("No more waves left");
-			yield return null;
-		}
-
-		yield return new WaitForSeconds(1.0f);
-
-		// spaw enemies
-		for (int i = 0; i < enemyWaves[CurrentWave].numEnemies; i++)
-			SpawnEnemy();
-
-		if (enemies.Count == 0)
-		{
-			Debug.LogWarning("No enemies were spawned in this wave");
-			StartCoroutine(OnWaveEnd());
 		}
 	}
 
