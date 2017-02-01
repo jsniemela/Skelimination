@@ -6,6 +6,7 @@ using Vuforia;
 
 public class GameManager : MonoBehaviour
 {
+	public bool endlessWaves = false;
 	public List<EnemyWave> enemyWaves = new List<EnemyWave>();
 	public GameObject EnemyObject;
 
@@ -21,8 +22,9 @@ public class GameManager : MonoBehaviour
 
 	void Start()
 	{
-		CurrentWave = -1;
 		Scores = new List<PlayerScore>();
+
+		Reset();
 
 		if (FindObjectsOfType<GameManager>().Length > 1)
 		{
@@ -41,6 +43,18 @@ public class GameManager : MonoBehaviour
 
 		if (EnemyObject == null)
 			Debug.LogError("EnemyObject not set");
+	}
+
+	public void Reset()
+	{
+		CurrentWave = -1;
+		sceneLoaded = false;
+
+		for (int i=0; i<enemies.Count; i++)
+			Destroy(enemies[i].gameObject);
+
+		enemies.Clear();
+		Scores.Clear();
 	}
 
 	private void OnSceneLoad(Scene scene, LoadSceneMode mode)
@@ -109,6 +123,8 @@ public class GameManager : MonoBehaviour
 			Score = 0,
 			PlayerObject = player,
 		});
+
+		sceneLoaded = true;
 	}
 
 	private void SpawnEnemy()
@@ -169,6 +185,9 @@ public class GameManager : MonoBehaviour
 		CurrentWave++;
 
 		Debug.Log("Current wave: " + CurrentWave + "/" + enemyWaves.Count);
+
+		if (endlessWaves && CurrentWave >= enemyWaves.Count)
+			CurrentWave = 0;
 
 		if (CurrentWave < enemyWaves.Count)
 		{
