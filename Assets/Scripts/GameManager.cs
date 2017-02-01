@@ -6,6 +6,7 @@ using Vuforia;
 
 public class GameManager : MonoBehaviour
 {
+	public bool endlessWaves = false;
 	public List<EnemyWave> enemyWaves = new List<EnemyWave>();
 	public GameObject EnemyObject;
 
@@ -184,6 +185,9 @@ public class GameManager : MonoBehaviour
 		CurrentWave++;
 
 		Debug.Log("Current wave: " + CurrentWave + "/" + enemyWaves.Count);
+
+		if (endlessWaves && CurrentWave >= enemyWaves.Count)
+			CurrentWave = 0;
 
 		if (CurrentWave < enemyWaves.Count)
 		{
