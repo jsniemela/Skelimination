@@ -6,18 +6,21 @@ using UnityEngine.UI;
 public class PlayerHealthBar : MonoBehaviour {
 
     Image healthbar;
-    Player player;
+    GameObject player;
 
     // Use this for initialization
     void Start ()
     {
         healthbar = GetComponent<Image>();
-//        var player = GameObject.Find("Player");
+        //        var player = GameObject.Find("Player");
+        
     }
 	
 	// Update is called once per frame
 	void Update ()
     {
-        healthbar.fillAmount = (float)player.Health / (float)player.MaxHealth;
+        player = GameObject.FindGameObjectWithTag("Player");
+        if (player != null)
+        healthbar.fillAmount = (float)player.GetComponent<Player>().Health / (float)player.GetComponent<Player>().MaxHealth;
 	}
 }
